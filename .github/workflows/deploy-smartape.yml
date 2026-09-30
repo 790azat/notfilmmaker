@@ -1,0 +1,90 @@
+name: Deploy to SmartApe
+
+# Выкладка на хостинг SmartApe после каждого пуша в main (и вручную из вкладки Actions).
+# Настройка: docs/smartape.md. Пока не задана переменная SMARTAPE_HOST, workflow ничего не делает.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-smartape
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: vars.SMARTAPE_HOST != ''
+    runs-on: ubuntu-latest
+    env:
+      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST }}
+      SMARTAPE_USER: ${{ vars.SMARTAPE_USER }}
+      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT }}
+      DOMAIN: ${{ vars.SMARTAPE_DOMAIN || 'notfilmmaker.com' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pdo, pdo_mysql, gd, intl
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build
+        run: |
+          composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+          npm ci && npm run build
+          rm -rf node_modules tests .git storage/logs/* public/hot
+          tar czf /tmp/release.tgz --exclude=./.github .
+
+      - name: SSH
+        env:
+          SMARTAPE_SSH_KEY: ${{ secrets.SMARTAPE_SSH_KEY }}
+          SMARTAPE_SSH_PASSWORD: ${{ secrets.SMARTAPE_SSH_PASSWORD }}
+        run: bash scripts/smartape/ssh-setup.sh
+
+      - name: Settings for the first deploy
+        env:
+          DB_DATABASE: ${{ secrets.SMARTAPE_DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.SMARTAPE_DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.SMARTAPE_DB_PASSWORD }}
+          DB_HOST: ${{ vars.SMARTAPE_DB_HOST || 'localhost' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # .env создаётся на сервере только один раз; дальше его правят там же (notfilmmaker/shared/.env).
+          umask 077
+          sed -e "s|^APP_URL=.*|APP_URL=https://$DOMAIN|" \
+              -e "s|^MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS=\"noreply@$DOMAIN\"|" \
+              .env.smartape.example > /tmp/env
+          {
+            echo "DB_HOST=$DB_HOST"
+            echo "DB_DATABASE=$DB_DATABASE"
+            echo "DB_USERNAME=$DB_USERNAME"
+            printf "DB_PASSWORD='%s'\n" "$DB_PASSWORD"
+            echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN"
+            echo "CRON_SECRET=$CRON_SECRET"
+          } >> /tmp/env
+          remote 'mkdir -p notfilmmaker/shared notfilmmaker/releases && [ -f notfilmmaker/shared/.env ] || cat > notfilmmaker/shared/.env.new' < /tmp/env
+          rm /tmp/env
+
+      - name: Upload and switch
+        run: |
+          REL="notfilmmaker/releases/$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+          remote "mkdir -p $REL && tar xzf - -C $REL" < /tmp/release.tgz
+          remote "PHP_BIN='${{ vars.SMARTAPE_PHP_BIN }}' SMARTAPE_WEBROOT='${{ vars.SMARTAPE_WEBROOT }}' bash \$HOME/$REL/scripts/smartape/release.sh \$HOME/$REL $DOMAIN"
+
+      - name: Check the site
+        run: |
+          sleep 5
+          curl -fsS -o /dev/null -w "https://$DOMAIN/ -> %{http_code}\n" "https://$DOMAIN/" \
+            || curl -fsS -o /dev/null -w "http://$DOMAIN/ -> %{http_code}\n" "http://$DOMAIN/" \
+            || echo "::warning::Сайт пока не открывается по домену (DNS или SSL ещё не готовы)"

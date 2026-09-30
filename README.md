@@ -25,6 +25,10 @@
 
 Откройте http://localhost:8000/register и создайте аккаунт админа.
 
+## Хостинг SmartApe (notfilmmaker.com)
+
+Выкладка через GitHub Actions по SSH и перенос данных с Vercel: [docs/smartape.md](docs/smartape.md).
+
 ## Деплой на Vercel
 
 См. [docs/vercel.md](docs/vercel.md).

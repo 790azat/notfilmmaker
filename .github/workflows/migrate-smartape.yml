@@ -1,0 +1,56 @@
+name: Move data to SmartApe
+
+# Разовый перенос данных со старого сайта на Vercel: работы, настройки, пользователи, чаты
+# из базы Neon и все фото и видео из Vercel Blob. Запускается вручную из вкладки Actions
+# после первой выкладки. Данные на SmartApe заменяются целиком.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Напишите ПЕРЕНЕСТИ, чтобы заменить данные на SmartApe'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    if: inputs.confirm == 'ПЕРЕНЕСТИ' && vars.SMARTAPE_HOST != ''
+    runs-on: ubuntu-latest
+    env:
+      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST }}
+      SMARTAPE_USER: ${{ vars.SMARTAPE_USER }}
+      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pdo, pdo_pgsql
+          coverage: none
+
+      - name: Export from the old database
+        env:
+          SOURCE_DATABASE_URL: ${{ secrets.SOURCE_DATABASE_URL }}
+        run: |
+          test -n "$SOURCE_DATABASE_URL" || { echo "Нужен секрет SOURCE_DATABASE_URL (DATABASE_URL из Vercel)"; exit 1; }
+          composer install --no-dev --prefer-dist --no-interaction --no-progress
+          cp .env.example .env && php artisan key:generate
+          umask 077
+          php artisan site:export /tmp/export.json --connection=source
+
+      - name: SSH
+        env:
+          SMARTAPE_SSH_KEY: ${{ secrets.SMARTAPE_SSH_KEY }}
+          SMARTAPE_SSH_PASSWORD: ${{ secrets.SMARTAPE_SSH_PASSWORD }}
+        run: bash scripts/smartape/ssh-setup.sh
+
+      - name: Import on SmartApe
+        run: |
+          remote 'umask 077 && cat > notfilmmaker/shared/export.json' < /tmp/export.json
+          rm /tmp/export.json
+          remote 'cd notfilmmaker/current && PHP=${PHP_BIN:-$(for p in /opt/php84/bin/php /opt/alt/php84/usr/bin/php php8.4 php; do command -v $p >/dev/null && $p -r "exit(PHP_VERSION_ID>=80400?0:1);" && echo $p && break; done)}; \
+            $PHP artisan site:pull --file=$HOME/notfilmmaker/shared/export.json --force; status=$?; \
+            rm -f $HOME/notfilmmaker/shared/export.json; [ $status = 0 ] && $PHP artisan site:media'
