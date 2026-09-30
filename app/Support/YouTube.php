@@ -82,11 +82,23 @@ class YouTube
             $errors[] = 'RSS '.$response->status();
         }
 
-        $response = static::http()->get("https://www.youtube.com/channel/{$channelId}/videos", ['hl' => 'en']);
-        if ($response->successful() && ($videos = static::parseChannelPage($response->body()))) {
-            return $videos;
+        // Страница «Видео»: по ID канала и по @-ссылке из настроек (на случай, если ID устарел).
+        $pages = ["https://www.youtube.com/channel/{$channelId}/videos"];
+        if (preg_match('~youtube\.com/(@[\w.-]+)~', (string) Setting::get('youtube'), $handle)) {
+            $pages[] = 'https://www.youtube.com/'.$handle[1].'/videos';
         }
-        $errors[] = 'page '.$response->status();
+        foreach ($pages as $url) {
+            $response = static::http()->get($url, ['hl' => 'en']);
+            $body = $response->body();
+            if ($response->successful() && ($videos = static::parseChannelPage($body))) {
+                return $videos;
+            }
+            preg_match('~<link rel="canonical" href="([^"]+)"~', $body, $canonical);
+            preg_match('~<title>(.*?)</title>~s', $body, $title);
+            $errors[] = sprintf('%s %d (len %d, videoIds %d, lockups %d, canonical %s, title %s)',
+                $url, $response->status(), strlen($body), substr_count($body, '"videoId"'), substr_count($body, 'lockupViewModel'),
+                $canonical[1] ?? '-', trim($title[1] ?? '-'));
+        }
 
         throw new RuntimeException('YouTube: '.implode(', ', $errors));
     }
@@ -153,6 +165,26 @@ class YouTube
 
                 return;
             }
+            if (($node['lockupViewModel']['contentType'] ?? '') === 'LOCKUP_CONTENT_TYPE_VIDEO') {
+                $v = $node['lockupViewModel'];
+                $id = $v['contentId'];
+                $meta = $v['metadata']['lockupMetadataViewModel'] ?? [];
+                $parts = [];
+                array_walk_recursive($meta, function ($value, $key) use (&$parts) {
+                    if ($key === 'content' && is_string($value)) {
+                        $parts[] = $value;
+                    }
+                });
+                $videos[$id] ??= [
+                    'id' => $id,
+                    'title' => trim($meta['title']['content'] ?? ''),
+                    'description' => '',
+                    'published' => static::relativeDate(implode(' ', $parts)),
+                    'views' => static::views(implode(' ', $parts)),
+                ];
+
+                return;
+            }
             foreach ($node as $child) {
                 $walk($child);
             }
@@ -160,6 +192,19 @@ class YouTube
         $walk($data);
 
         return array_values(array_filter($videos, fn ($v) => $v['title'] !== ''));
+    }
+
+    /** «1.2K views» → 1200. */
+    public static function views(string $text): int
+    {
+        if (! preg_match('/([\d.,]+)\s*([KMB])?\s*views/i', $text, $m)) {
+            return 0;
+        }
+        $n = (float) str_replace(',', '', $m[1]);
+
+        return (int) round($n * match (strtoupper($m[2] ?? '')) {
+            'K' => 1e3, 'M' => 1e6, 'B' => 1e9, default => 1
+        });
     }
 
     /** «3 years ago» → примерная дата. */
