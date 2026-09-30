@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AutoMigrate;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureTelegramWebhook;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
         $middleware->web(prepend: [AutoMigrate::class]);
-        $middleware->web(append: [SetLocale::class]);
+        $middleware->web(append: [SetLocale::class, EnsureTelegramWebhook::class]);
         $middleware->validateCsrfTokens(except: ['telegram/webhook']);
         $middleware->alias(['admin' => EnsureAdmin::class]);
         $middleware->redirectGuestsTo(fn () => route('login'));

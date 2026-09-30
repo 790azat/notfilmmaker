@@ -78,7 +78,7 @@ class Telegram
     }
 
     /** Проверяет токен, ставит webhook на этот сайт и возвращает имя бота. */
-    public static function connect(string $token, string $webhookUrl): string
+    public static function connect(string $token, string $webhookUrl, bool $storeToken = true): string
     {
         $me = static::api('getMe', [], $token);
         static::api('setWebhook', [
@@ -87,16 +87,43 @@ class Telegram
             'allowed_updates' => ['message'],
             'drop_pending_updates' => true,
         ], $token);
-        Setting::put('telegram_token', $token);
+        if ($storeToken) {
+            Setting::put('telegram_token', $token);
+        }
         Setting::put('telegram_bot', $me['username']);
+        Setting::put('telegram_webhook', $webhookUrl);
 
         return $me['username'];
+    }
+
+    /**
+     * Токен из переменной TELEGRAM_BOT_TOKEN подключается сам при первом запросе к сайту.
+     * Webhook ставится на этот домен, если его ещё нет, а основной домен (APP_URL) забирает его себе:
+     * так бот работает и с копии сайта (например, светлой версии), и с основного сайта после выкладки.
+     */
+    public static function ensureWebhook(string $host): void
+    {
+        $token = config('services.telegram.token');
+        if (! $token || Setting::get('telegram_token')) {
+            return;
+        }
+        $url = "https://{$host}/telegram/webhook";
+        $current = Setting::get('telegram_webhook');
+        $main = parse_url((string) config('app.url'), PHP_URL_HOST) === $host;
+        if ($current === $url || ($current && ! $main) || ! cache()->add('telegram-webhook-attempt', 1, 60)) {
+            return;
+        }
+        try {
+            static::connect($token, $url, storeToken: false);
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     public static function disconnect(): void
     {
         rescue(fn () => static::api('deleteWebhook'), report: false);
-        foreach (['telegram_token', 'telegram_bot', 'telegram_admins'] as $key) {
+        foreach (['telegram_token', 'telegram_bot', 'telegram_admins', 'telegram_webhook'] as $key) {
             Setting::put($key, null);
         }
     }
