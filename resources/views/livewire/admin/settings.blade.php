@@ -66,7 +66,7 @@
                     <select wire:model.live="heroReels.{{ $slot }}" class="input">
                         <option value="">{{ __('admin.settings.hero_reels_auto') }}</option>
                         @foreach ($reelOptions as $option)
-                            <option value="{{ $option->id }}">{{ $option->title ?: '#'.$option->id }}</option>
+                            <option value="{{ $option->id }}">{{ $option->title ?: '#'.$option->id }}{{ $option->published_at ? ' · '.$option->published_at->format('d.m.Y') : '' }}</option>
                         @endforeach
                     </select>
                 </div>
