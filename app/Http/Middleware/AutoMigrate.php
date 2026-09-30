@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Models\Setting;
-use App\Support\YouTube;
 use Closure;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Http\Request;
@@ -46,10 +45,6 @@ class AutoMigrate
                     rescue(fn () => DB::select('select pg_advisory_unlock(424242)'), report: false);
                 }
             }
-        }
-
-        if (is_file($marker) && ! app()->runningUnitTests()) {
-            defer(fn () => YouTube::syncIfStale());
         }
 
         return $next($request);

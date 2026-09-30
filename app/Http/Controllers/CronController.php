@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Setting;
 use App\Support\Instagram;
+use App\Support\InstagramArchive;
 use App\Support\YouTube;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,12 @@ class CronController extends Controller
         abort_unless($secret && hash_equals('Bearer '.$secret, (string) $request->header('Authorization')), 401);
 
         $result = [];
-        foreach (['youtube' => fn () => static::youtubeNew(), 'instagram' => fn () => Instagram::syncNew()] as $key => $sync) {
+        $jobs = [
+            'youtube' => fn () => static::youtubeNew(),
+            'instagram' => fn () => Instagram::syncNew(),
+            'archive' => fn () => InstagramArchive::run(),
+        ];
+        foreach ($jobs as $key => $sync) {
             try {
                 $result[$key] = $sync();
             } catch (Throwable $e) {
@@ -28,6 +34,18 @@ class CronController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Доимпорт архива Instagram порциями. Доступ по отдельному токену, который
+     * выводится из APP_KEY и годится только для этого действия.
+     */
+    public function archive(Request $request): JsonResponse
+    {
+        $token = hash_hmac('sha256', 'instagram-archive', (string) config('app.key'));
+        abort_unless(hash_equals($token, (string) $request->query('token')), 401);
+
+        return response()->json(InstagramArchive::run());
     }
 
     protected static function youtubeNew(): int

@@ -20,6 +20,11 @@ class Home extends Component
 
         $latestVideos = Work::published()->whereNotNull('youtube_id')->orderByDesc('published_at')->orderByDesc('id')->take(8)->get();
 
+        // Рилсы и другие загруженные видео: живая стена в шапке и лента на главной.
+        $reels = Work::published()->whereNotNull('video_url')->whereNull('youtube_id')
+            ->where('video_url', 'not like', '%instagram.com%')
+            ->orderByDesc('is_featured')->orderByDesc('published_at')->take(12)->get();
+
         $showreel = YouTube::parseId(Setting::get('showreel_url'))
             ?? $featured->firstWhere('youtube_id')?->youtube_id
             ?? $latestVideos->first()?->youtube_id;
@@ -30,7 +35,7 @@ class Home extends Component
             'views' => max((int) Setting::get('stat_views', 0), (int) Work::sum('views')),
         ];
 
-        return view('livewire.home', compact('featured', 'latestVideos', 'showreel', 'stats'))
+        return view('livewire.home', compact('featured', 'latestVideos', 'reels', 'showreel', 'stats'))
             ->layout('layouts.site');
     }
 }

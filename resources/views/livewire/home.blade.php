@@ -7,6 +7,17 @@
             <div class="absolute inset-0 overflow-hidden" wire:ignore>
                 <iframe class="video-bg opacity-60" src="{{ YouTube::background($showreel) }}" title="Showreel" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
             </div>
+        @elseif ($reels->count() >= 3)
+            {{-- Живая стена из рилсов: на компьютере играют без звука, на телефоне — кадры. --}}
+            <div class="absolute inset-0 flex gap-2 opacity-45 sm:gap-3" wire:ignore aria-hidden="true">
+                @foreach ($reels->take(5) as $reel)
+                    <div class="relative h-full flex-1 overflow-hidden {{ $loop->index === 2 ? 'hidden sm:block' : '' }} {{ $loop->index >= 3 ? 'hidden lg:block' : '' }}">
+                        <video src="{{ $reel->videoFileUrl() }}" poster="{{ $reel->coverUrl() }}" muted loop playsinline preload="none"
+                               x-data x-init="if (window.matchMedia('(min-width: 640px)').matches) { $el.preload = 'auto'; $el.play().catch(() => {}) }"
+                               class="size-full object-cover"></video>
+                    </div>
+                @endforeach
+            </div>
         @elseif ($hero = Setting::get('hero_image'))
             <img src="{{ Media::url($hero) }}" alt="" class="absolute inset-0 size-full object-cover opacity-50">
         @else
@@ -173,6 +184,32 @@
             </div>
         </div>
     </section>
+
+    {{-- Рилсы --}}
+    @if ($reels->count() >= 3)
+        <section class="border-t border-line py-24 sm:py-32">
+            <div class="container-x flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                <div class="reveal">
+                    <p class="kicker">Instagram</p>
+                    <h2 class="display mt-5 text-5xl sm:text-7xl">{{ __('site.home.reels_title') }}</h2>
+                </div>
+                <a href="{{ route('works.index', ['c' => 'reels']) }}" wire:navigate class="btn-ghost reveal self-start">{{ __('site.home.all_reels') }} <x-icon name="arrow-right" class="size-4" /></a>
+            </div>
+            <div class="mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-6 sm:px-8 lg:px-[max(3rem,calc((100vw-1400px)/2+3rem))] [scrollbar-width:thin]">
+                @foreach ($reels as $reel)
+                    <a href="{{ route('works.show', $reel) }}" wire:navigate
+                       x-data x-on:mouseenter="$refs.v.play().catch(() => {})" x-on:mouseleave="$refs.v.pause()"
+                       class="group relative aspect-[9/16] w-[62vw] shrink-0 snap-start overflow-hidden rounded-2xl bg-graphite sm:w-[260px]">
+                        <img src="{{ $reel->coverUrl() }}" alt="{{ $reel->title }}" loading="lazy" class="absolute inset-0 size-full object-cover">
+                        <video x-ref="v" src="{{ $reel->videoFileUrl() }}" muted loop playsinline preload="none"
+                               class="absolute inset-0 size-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"></video>
+                        <div class="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent"></div>
+                        <p class="absolute inset-x-0 bottom-0 p-4 text-sm font-medium">{{ $reel->title }}</p>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @endif
 
     {{-- YouTube --}}
     @if ($latestVideos->isNotEmpty())

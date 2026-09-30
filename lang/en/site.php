@@ -30,6 +30,8 @@ return [
         'about_kicker' => 'About',
         'about_more' => 'More about me',
         'youtube_kicker' => 'Fresh from YouTube',
+        'reels_title' => 'Reels',
+        'all_reels' => 'All reels',
         'youtube_title' => 'Latest videos',
         'subscribe' => 'Subscribe on YouTube',
         'cta_title' => 'Have a story worth telling?',

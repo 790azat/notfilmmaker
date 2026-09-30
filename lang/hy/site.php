@@ -30,6 +30,8 @@ return [
         'about_kicker' => 'Իմ մասին',
         'about_more' => 'Ավելին',
         'youtube_kicker' => 'Նորը YouTube-ից',
+        'reels_title' => 'Ռիլզեր',
+        'all_reels' => 'Բոլոր ռիլզերը',
         'youtube_title' => 'Վերջին տեսանյութերը',
         'subscribe' => 'Բաժանորդագրվել YouTube-ում',
         'cta_title' => 'Ունե՞ք պատմություն, որն արժե պատմել',

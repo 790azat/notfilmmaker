@@ -30,6 +30,8 @@ return [
         'about_kicker' => 'Обо мне',
         'about_more' => 'Подробнее',
         'youtube_kicker' => 'Свежее с YouTube',
+        'reels_title' => 'Рилсы',
+        'all_reels' => 'Все рилсы',
         'youtube_title' => 'Последние видео',
         'subscribe' => 'Подписаться на YouTube',
         'cta_title' => 'Есть история, которую стоит рассказать?',
