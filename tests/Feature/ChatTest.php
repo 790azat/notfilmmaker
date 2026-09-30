@@ -78,4 +78,24 @@ class ChatTest extends TestCase
         $this->webhook(['message_id' => 8, 'from' => ['id' => 555], 'text' => 'Ողջույն', 'reply_to_message' => ['message_id' => $link->tg_message_id]]);
         Http::assertSent(fn (Request $r) => str_contains($r->url(), 'copyMessage') && $r['chat_id'] === 42);
     }
+
+    public function test_bot_token_from_env_connects_itself_and_main_domain_takes_the_webhook(): void
+    {
+        Setting::put('telegram_token', null);
+        Setting::put('telegram_bot', null);
+        config(['services.telegram.token' => '999:'.str_repeat('b', 35), 'app.url' => 'https://main.example']);
+
+        Telegram::ensureWebhook('copy.example');
+        $this->assertSame('https://copy.example/telegram/webhook', Setting::get('telegram_webhook'));
+        $this->assertSame('nf_bot', Setting::get('telegram_bot'));
+        $this->assertNull(Setting::get('telegram_token'));
+
+        cache()->flush();
+        Telegram::ensureWebhook('other-copy.example');
+        $this->assertSame('https://copy.example/telegram/webhook', Setting::get('telegram_webhook'));
+
+        Telegram::ensureWebhook('main.example');
+        $this->assertSame('https://main.example/telegram/webhook', Setting::get('telegram_webhook'));
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'bot999:') && str_contains($r->url(), 'setWebhook') && $r['url'] === 'https://main.example/telegram/webhook');
+    }
 }

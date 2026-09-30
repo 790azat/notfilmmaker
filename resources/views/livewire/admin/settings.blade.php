@@ -119,7 +119,9 @@
             @if ($tgBot)
                 <div class="flex items-center justify-between gap-4 rounded-xl border border-line px-4 py-3 text-sm">
                     <span>{{ __('admin.telegram.bot') }} <a href="https://t.me/{{ $tgBot }}" target="_blank" rel="noopener" class="font-bold hover:text-amber">{{ '@'.$tgBot }}</a></span>
+                    @if (\App\Models\Setting::get('telegram_token'))
                     <button type="button" wire:click="disconnectTelegram" wire:confirm="{{ __('admin.telegram.confirm_disconnect') }}" class="text-xs text-smoke hover:text-rec">{{ __('admin.telegram.disconnect') }}</button>
+                    @endif
                 </div>
                 <p class="text-sm text-ash">{{ trans_choice('admin.telegram.admins', count(\App\Support\Telegram::admins())) }}</p>
                 <a href="{{ \App\Support\Telegram::adminLink() }}" target="_blank" rel="noopener" class="btn-primary w-full !py-2.5"><x-icon name="send" class="size-4" /> {{ __('admin.telegram.link') }}</a>
