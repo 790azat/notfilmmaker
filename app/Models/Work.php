@@ -90,6 +90,9 @@ class Work extends Model
         if ($this->youtube_id) {
             return YouTube::embed($this->youtube_id, $autoplay);
         }
+        if ($this->video_url && preg_match('~instagram\.com/(?:[\w.]+/)?(p|reel|tv)/([\w-]+)~', $this->video_url, $m)) {
+            return 'https://www.instagram.com/'.$m[1].'/'.$m[2].'/embed';
+        }
         if ($this->video_url && preg_match('~vimeo\.com/(?:video/)?(\d+)~', $this->video_url, $m)) {
             return 'https://player.vimeo.com/video/'.$m[1].($autoplay ? '?autoplay=1' : '');
         }

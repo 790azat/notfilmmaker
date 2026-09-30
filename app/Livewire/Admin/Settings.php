@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Setting;
+use App\Support\Instagram;
 use App\Support\Media;
 use App\Support\YouTube;
 use Livewire\Component;
@@ -14,7 +15,7 @@ class Settings extends Component
 
     public const PLAIN = ['email', 'phone', 'instagram', 'facebook', 'youtube', 'youtube_channel_id', 'showreel_url', 'stat_years', 'stat_projects', 'stat_views'];
 
-    public const FLAGS = ['registration_open', 'youtube_autosync'];
+    public const FLAGS = ['registration_open', 'youtube_autosync', 'instagram_autosync'];
 
     public const IMAGES = ['portrait', 'hero_image', 'og_image'];
 
@@ -25,6 +26,10 @@ class Settings extends Component
     public array $f = [];
 
     public array $images = [];
+
+    public string $igToken = '';
+
+    public ?string $igAccount = null;
 
     public function mount(): void
     {
@@ -37,6 +42,8 @@ class Settings extends Component
         }
         $this->f['registration_open'] = (bool) Setting::get('registration_open', false);
         $this->f['youtube_autosync'] = (bool) Setting::get('youtube_autosync', true);
+        $this->f['instagram_autosync'] = (bool) Setting::get('instagram_autosync', true);
+        $this->igAccount = Instagram::token() ? Setting::get('instagram_username', '✓') : null;
         foreach (self::IMAGES as $key) {
             $this->images[$key] = Setting::get($key);
         }
@@ -113,6 +120,45 @@ class Settings extends Component
         } catch (Throwable $e) {
             report($e);
             $this->dispatch('toast', text: __('admin.youtube.failed').' '.$e->getMessage(), type: 'error');
+        }
+    }
+
+    public function connectInstagram(): void
+    {
+        $token = trim($this->igToken);
+        $this->validate(['igToken' => ['required', 'string', 'min:20']]);
+        try {
+            $username = Instagram::account($token);
+        } catch (Throwable $e) {
+            $this->addError('igToken', $e->getMessage());
+
+            return;
+        }
+        Setting::put('instagram_token', $token);
+        Setting::put('instagram_username', $username);
+        Setting::put('instagram_cursor', null);
+        $this->igToken = '';
+        $this->igAccount = $username;
+        $this->dispatch('toast', text: __('admin.instagram.connected', ['name' => $username]));
+    }
+
+    public function disconnectInstagram(): void
+    {
+        foreach (['instagram_token', 'instagram_username', 'instagram_cursor'] as $key) {
+            Setting::put($key, null);
+        }
+        $this->igAccount = null;
+    }
+
+    /** Одна порция импорта; кнопка в админке вызывает её, пока есть что забирать. */
+    public function importInstagram(bool $fromStart = false): array
+    {
+        try {
+            return Instagram::importBatch(20, $fromStart);
+        } catch (Throwable $e) {
+            report($e);
+
+            return ['added' => 0, 'more' => false, 'error' => $e->getMessage()];
         }
     }
 

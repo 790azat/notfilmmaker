@@ -16,6 +16,7 @@ Route::get('/contact', Livewire\Contact::class)->name('contact');
 Route::get('/lang/{locale}', LocaleController::class)->name('locale');
 Route::get('/sitemap.xml', SitemapController::class);
 Route::get('/cron/youtube', [CronController::class, 'youtube']);
+Route::get('/cron/sync', [CronController::class, 'youtube']);
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', Livewire\Auth\Login::class)->name('login');

@@ -21,6 +21,18 @@ class Media
         return Storage::disk('public')->url($path);
     }
 
+    /** Сохраняет файл с сервера: в Vercel Blob (полная ссылка) или на локальный диск (путь). */
+    public static function store(string $folder, string $contents, string $ext, string $mime): string
+    {
+        $path = $folder.'/'.Str::lower(Str::random(24)).'.'.$ext;
+        if (Blob::enabled()) {
+            return Blob::put($path, $contents, $mime);
+        }
+        Storage::disk('public')->put($path, $contents);
+
+        return $path;
+    }
+
     public static function delete(?string $path): void
     {
         if (! $path) {

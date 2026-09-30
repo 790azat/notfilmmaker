@@ -69,6 +69,51 @@
             </div>
         </div>
 
+        <div class="card space-y-5" x-data="{
+                busy: false, added: 0, error: null, done: false,
+                async run(fromStart) {
+                    this.busy = true; this.added = 0; this.error = null; this.done = false;
+                    let first = true;
+                    while (true) {
+                        const r = await $wire.importInstagram(first && fromStart);
+                        first = false;
+                        this.added += r.added;
+                        if (r.error) { this.error = r.error; break; }
+                        if (!r.more) { this.done = true; break; }
+                    }
+                    this.busy = false;
+                }
+            }">
+            <h2 class="font-medium">Instagram</h2>
+            @if ($igAccount)
+                <div class="flex items-center justify-between gap-4 rounded-xl border border-line px-4 py-3 text-sm">
+                    <span>{{ __('admin.instagram.account') }} <b>{{ '@'.$igAccount }}</b></span>
+                    <button type="button" wire:click="disconnectInstagram" wire:confirm="{{ __('admin.instagram.confirm_disconnect') }}" class="text-xs text-smoke hover:text-rec">{{ __('admin.instagram.disconnect') }}</button>
+                </div>
+                <label class="flex items-center justify-between gap-4">
+                    <span>{{ __('admin.settings.fields.instagram_autosync') }}</span>
+                    <input type="checkbox" wire:model="f.instagram_autosync" class="size-5 accent-amber">
+                </label>
+                <button type="button" x-on:click="run(true)" x-bind:disabled="busy" class="btn-primary w-full !py-2.5">
+                    <x-icon name="refresh" class="size-4" x-bind:class="busy && 'animate-spin'" />
+                    <span x-show="!busy">{{ __('admin.instagram.import') }}</span>
+                    <span x-show="busy" x-cloak>{{ __('admin.instagram.importing') }} <span x-text="added"></span></span>
+                </button>
+                <p x-show="done" x-cloak class="text-sm text-amber">{{ __('admin.instagram.done') }} <span x-text="added"></span></p>
+                <p x-show="error" x-cloak class="text-sm text-rec" x-text="error"></p>
+                <p class="text-xs text-smoke">{{ __('admin.instagram.hint') }}</p>
+            @else
+                <p class="text-sm text-ash">{{ __('admin.instagram.intro') }}</p>
+                <div>
+                    <label class="label">{{ __('admin.instagram.token') }}</label>
+                    <input wire:model="igToken" type="password" class="input" autocomplete="off" placeholder="IGAA…">
+                    @error('igToken') <p class="mt-1.5 text-xs text-rec">{{ $message }}</p> @enderror
+                </div>
+                <button type="button" wire:click="connectInstagram" wire:loading.attr="disabled" class="btn-ghost w-full !py-2.5">{{ __('admin.instagram.connect') }}</button>
+                <a href="https://github.com/790azat/notfilmmaker/blob/main/docs/instagram.md" target="_blank" rel="noopener" class="block text-xs text-amber hover:underline">{{ __('admin.instagram.howto') }}</a>
+            @endif
+        </div>
+
         <div class="card space-y-5">
             <h2 class="font-medium">{{ __('admin.settings.images') }}</h2>
             @foreach (['portrait' => 'setPortrait', 'hero_image' => 'setHeroImage', 'og_image' => 'setOgImage'] as $key => $method)

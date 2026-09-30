@@ -43,4 +43,25 @@ class Blob
             ->timeout(30)
             ->post('https://vercel.com/api/blob/delete', ['urls' => [$url]]);
     }
+
+    /** Загрузка с сервера (для импорта). Возвращает публичную ссылку. */
+    public static function put(string $pathname, string $contents, string $mime): string
+    {
+        $response = Http::withToken(static::token())
+            ->withHeaders([
+                'x-api-version' => '12',
+                'x-vercel-blob-access' => 'public',
+                'x-add-random-suffix' => '0',
+                'x-content-type' => $mime,
+            ])
+            ->timeout(60)
+            ->withBody($contents, $mime)
+            ->put('https://vercel.com/api/blob/?'.http_build_query(['pathname' => $pathname]));
+
+        if (! $response->successful() || ! $response->json('url')) {
+            throw new \RuntimeException('Blob upload failed: HTTP '.$response->status());
+        }
+
+        return $response->json('url');
+    }
 }

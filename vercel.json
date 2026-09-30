@@ -6,7 +6,7 @@
     "functions": {
         "api/index.php": {
             "runtime": "vercel-php@0.9.0",
-            "maxDuration": 30
+            "maxDuration": 60
         }
     },
     "routes": [
@@ -32,7 +32,7 @@
     ],
     "crons": [
         {
-            "path": "/cron/youtube",
+            "path": "/cron/sync",
             "schedule": "0 6 * * *"
         }
     ]
