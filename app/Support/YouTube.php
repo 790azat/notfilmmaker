@@ -83,7 +83,7 @@ class YouTube
         }
 
         // Страница «Видео»: по ID канала и по @-ссылке из настроек (на случай, если ID устарел).
-        $pages = ["https://www.youtube.com/channel/{$channelId}/videos"];
+        $pages = ["https://www.youtube.com/channel/{$channelId}/videos", "https://www.youtube.com/channel/{$channelId}/shorts"];
         if (preg_match('~youtube\.com/(@[\w.-]+)~', (string) Setting::get('youtube'), $handle)) {
             $pages[] = 'https://www.youtube.com/'.$handle[1].'/videos';
         }
@@ -95,8 +95,9 @@ class YouTube
             }
             preg_match('~<link rel="canonical" href="([^"]+)"~', $body, $canonical);
             preg_match('~<title>(.*?)</title>~s', $body, $title);
-            $errors[] = sprintf('%s %d (len %d, videoIds %d, lockups %d, canonical %s, title %s)',
-                $url, $response->status(), strlen($body), substr_count($body, '"videoId"'), substr_count($body, 'lockupViewModel'),
+            preg_match_all('~.{60}"videoId".{40}~', $body, $around);
+            $errors[] = sprintf('%s %d (len %d, videoIds %d [%s], lockups %d, canonical %s, title %s)',
+                $url, $response->status(), strlen($body), substr_count($body, '"videoId"'), implode(' | ', $around[0]), substr_count($body, 'lockupViewModel'),
                 $canonical[1] ?? '-', trim($title[1] ?? '-'));
         }
 
@@ -162,6 +163,21 @@ class YouTube
                     'published' => static::relativeDate($v['publishedTimeText']['simpleText'] ?? ''),
                     'views' => (int) preg_replace('/\D/', '', $v['viewCountText']['simpleText'] ?? '0'),
                 ];
+
+                return;
+            }
+            if (isset($node['shortsLockupViewModel'])) {
+                $v = $node['shortsLockupViewModel'];
+                $id = $v['onTap']['innertubeCommand']['reelWatchEndpoint']['videoId'] ?? null;
+                if ($id) {
+                    $videos[$id] ??= [
+                        'id' => $id,
+                        'title' => trim($v['overlayMetadata']['primaryText']['content'] ?? $v['accessibilityText'] ?? ''),
+                        'description' => '',
+                        'published' => now(),
+                        'views' => static::views(($v['overlayMetadata']['secondaryText']['content'] ?? '').' views'),
+                    ];
+                }
 
                 return;
             }
@@ -256,7 +272,7 @@ class YouTube
         $channel = static::channelId(Setting::get('youtube_channel_id'));
         $last = Setting::get('youtube_synced_at');
         // Пока с канала ничего не импортировано, пробуем чаще.
-        $every = Work::whereNotNull('youtube_id')->exists() ? 360 : 10;
+        $every = Work::whereNotNull('youtube_id')->exists() ? 360 : 60;
         if (! $channel || ($last && Carbon::parse($last)->gt(now()->subMinutes($every)))) {
             return;
         }
