@@ -155,6 +155,13 @@
     .tab-idle {
         @apply text-ash hover:text-bone;
     }
+
+    /* Плёнка из кадров на главной */
+    .film-holes {
+        height: 10px;
+        background: repeating-linear-gradient(90deg, transparent 0 14px, var(--color-bone) 14px 26px);
+        opacity: 0.85;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

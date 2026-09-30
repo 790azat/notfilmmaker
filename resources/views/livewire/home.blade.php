@@ -75,17 +75,24 @@
         </a>
     </section>
 
-    {{-- Бегущая строка --}}
-    <div class="overflow-hidden border-y border-line bg-coal py-5" aria-hidden="true">
-        <div class="flex w-max animate-marquee gap-10 whitespace-nowrap">
-            @for ($k = 0; $k < 4; $k++)
-                @foreach (__('site.hero.roles') as $role)
-                    <span class="display text-3xl text-bone/80 sm:text-4xl">{{ $role }}</span>
-                    <span class="display text-3xl text-amber sm:text-4xl">✦</span>
-                @endforeach
-            @endfor
+    {{-- Плёнка из кадров --}}
+    @php $filmFrames = $featured->merge($reels)->unique('id')->filter(fn ($w) => $w->coverUrl())->values()->take(10); @endphp
+    @if ($filmFrames->count() >= 4)
+        <div class="overflow-hidden border-y border-line bg-black py-4" aria-hidden="true">
+            <div class="film-holes"></div>
+            <div class="flex w-max animate-marquee gap-2.5 py-3.5">
+                @for ($k = 0; $k < 2; $k++)
+                    @foreach ($filmFrames as $i => $frame)
+                        <div class="relative h-32 w-52 shrink-0 overflow-hidden sm:h-40 sm:w-60">
+                            <img src="{{ $frame->coverUrl() }}" alt="" loading="lazy" class="size-full object-cover">
+                            <span class="absolute bottom-1.5 left-2 font-mono text-[9px] tracking-[0.2em] text-white/80">{{ 12 + $i }}A</span>
+                        </div>
+                    @endforeach
+                @endfor
+            </div>
+            <div class="film-holes"></div>
         </div>
-    </div>
+    @endif
 
     {{-- Избранные работы --}}
     <section id="featured" class="py-24 sm:py-32">
