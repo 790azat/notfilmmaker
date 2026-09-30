@@ -2,10 +2,10 @@
 <div>
     {{-- HERO --}}
     <section class="relative flex min-h-[100svh] items-end overflow-hidden bg-ink">
-        @if ($reels->count() >= 3)
+        @if ($heroReels->count() >= 3)
             {{-- Живая стена из рилсов: на компьютере играют без звука, на телефоне — кадры. Шоурил с YouTube остаётся на кнопке. --}}
             <div class="absolute inset-0 flex gap-2 opacity-45 sm:gap-3" wire:ignore aria-hidden="true">
-                @foreach ($reels->take(5) as $reel)
+                @foreach ($heroReels as $reel)
                     <div class="relative h-full flex-1 overflow-hidden {{ $loop->index >= 3 ? 'hidden lg:block' : '' }}">
                         <video src="{{ $reel->videoFileUrl() }}" poster="{{ $reel->coverUrl() }}" muted loop playsinline preload="none"
                                x-data x-init="if (window.matchMedia('(min-width: 640px)').matches) { $el.preload = 'auto'; $el.play().catch(() => {}) }"
