@@ -7,7 +7,7 @@
 <article class="group reveal relative" wire:key="work-{{ $work->id }}">
     <a href="{{ route('works.show', $work) }}" wire:navigate class="block">
         <div @if ($file) x-data x-on:mouseenter="$refs.preview.play().catch(() => {})" x-on:mouseleave="$refs.preview.pause()" @endif
-             class="relative overflow-hidden rounded-2xl bg-graphite {{ $large ? 'aspect-[16/10]' : ($tall ? 'aspect-[4/5]' : 'aspect-video') }}">
+             class="relative overflow-hidden rounded-md bg-graphite {{ $large ? 'aspect-[16/10]' : ($tall ? 'aspect-[4/5]' : 'aspect-video') }}">
             @if ($cover)
                 <img src="{{ $cover }}" alt="{{ $work->title }}" loading="lazy"
                      @if ($work->youtube_id && ! $work->cover) onerror="if(!this.dataset.f){this.dataset.f=1;this.src='{{ \App\Support\YouTube::thumbnail($work->youtube_id, 'hqdefault') }}'}else{this.style.display='none'}" @endif
@@ -24,28 +24,21 @@
                 <video x-ref="preview" src="{{ $file }}" muted loop playsinline preload="none"
                        class="absolute inset-0 size-full object-cover opacity-0 transition duration-700 group-hover:opacity-100"></video>
             @endif
-            <div class="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/10 to-transparent opacity-80 transition duration-500 group-hover:opacity-100"></div>
-
-            <span class="absolute top-4 left-4 rounded-full bg-ink/60 px-3 py-1 text-[11px] tracking-wider text-bone/90 uppercase backdrop-blur">
-                {{ $work->categoryLabel() }}
-            </span>
 
             @if ($work->hasVideo())
                 <button type="button"
                         x-on:click.prevent.stop="$dispatch('play-video', { src: @js($work->embedUrl(true) ?? $work->videoFileUrl()) })"
-                        class="absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 scale-90 place-items-center rounded-full bg-bone/95 text-ink opacity-0 shadow-2xl transition duration-500 group-hover:scale-100 group-hover:opacity-100"
+                        class="absolute top-1/2 left-1/2 grid size-16 -translate-x-1/2 -translate-y-1/2 scale-90 place-items-center rounded-full bg-white/95 text-black opacity-0 shadow-2xl transition duration-500 group-hover:scale-100 group-hover:opacity-100"
                         aria-label="{{ __('site.works.watch') }}">
                     <x-icon name="play" class="ml-1 size-6" />
                 </button>
             @endif
 
-            <div class="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-                <h3 class="display {{ $large ? 'text-3xl sm:text-4xl' : 'text-2xl' }} text-bone">{{ $work->title }}</h3>
-                <p class="mt-2 flex items-center gap-3 text-xs text-ash">
-                    @if ($work->year)<span>{{ $work->year }}</span>@endif
-                    @if ($work->role)<span class="size-1 rounded-full bg-smoke"></span><span>{{ $work->role }}</span>@endif
-                </p>
-            </div>
+        </div>
+        {{-- Подпись под кадром, как в каталоге выставки --}}
+        <div class="mt-4 flex items-baseline justify-between gap-4 border-t border-line pt-3">
+            <h3 class="display {{ $large ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl' }} transition group-hover:text-amber">{{ $work->title }}</h3>
+            <p class="shrink-0 font-mono text-[10px] tracking-[0.2em] text-ash uppercase">{{ $work->categoryLabel() }}@if ($work->year) · {{ $work->year }}@endif</p>
         </div>
     </a>
 </article>

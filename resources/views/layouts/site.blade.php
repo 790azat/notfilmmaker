@@ -16,16 +16,15 @@
             class="fixed inset-x-0 top-0 z-50 border-b transition-all duration-500">
         <div class="container-x flex h-20 items-center justify-between gap-6">
             <a href="{{ route('home') }}" wire:navigate class="group flex items-center gap-3">
-                <span class="relative grid size-9 place-items-center rounded-full border border-bone/30">
-                    <span class="size-2 rounded-full bg-rec animate-rec"></span>
+                <span class="display text-[1.9rem] leading-none">
+                    @if (str_starts_with($siteName, 'not'))<s class="text-amber italic decoration-2">not</s>{{ substr($siteName, 3) }}@else{{ $siteName }}@endif
                 </span>
-                <span class="display text-xl leading-none normal-case">{{ $siteName }}</span>
             </a>
 
             <nav class="hidden items-center gap-8 text-sm lg:flex">
                 @foreach (['home' => 'home', 'works.index' => 'works', 'about' => 'about', 'contact' => 'contact'] as $route => $key)
                     <a href="{{ route($route) }}" wire:navigate
-                       class="relative py-2 transition hover:text-bone {{ request()->routeIs($route === 'works.index' ? 'works.*' : $route) ? 'text-bone after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-amber' : 'text-ash' }}">
+                       class="relative py-2 transition hover:text-bone {{ request()->routeIs($route === 'works.index' ? 'works.*' : $route) ? 'text-bone after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-bone' : 'text-ash' }}">
                         {{ __('site.nav.'.$key) }}
                     </a>
                 @endforeach
@@ -72,7 +71,7 @@
     <footer class="border-t border-line">
         <div class="container-x grid gap-10 py-16 md:grid-cols-3">
             <div>
-                <p class="display text-3xl normal-case">{{ $siteName }}</p>
+                <p class="display text-4xl">@if (str_starts_with($siteName, 'not'))<s class="text-amber italic decoration-2">not</s>{{ substr($siteName, 3) }}@else{{ $siteName }}@endif</p>
                 <p class="mt-3 max-w-xs text-sm text-ash">{{ __('site.footer.tagline') }}</p>
             </div>
             <nav class="grid grid-cols-2 gap-3 text-sm text-ash">
@@ -104,7 +103,7 @@
 
     {{-- Плеер во всплывающем окне --}}
     <div x-cloak x-show="video" x-transition.opacity class="fixed inset-0 z-[80] flex items-center justify-center bg-black/95 p-4 sm:p-10" x-on:click.self="video = null">
-        <button type="button" class="absolute top-5 right-5 grid size-12 place-items-center rounded-full border border-bone/30 text-bone hover:bg-bone hover:text-ink" x-on:click="video = null" aria-label="{{ __('site.nav.close') }}">
+        <button type="button" class="absolute top-5 right-5 grid size-12 place-items-center rounded-full border border-white/30 text-white hover:bg-white hover:text-black" x-on:click="video = null" aria-label="{{ __('site.nav.close') }}">
             <x-icon name="x" />
         </button>
         <div class="aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-black shadow-2xl">

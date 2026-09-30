@@ -10,12 +10,12 @@
                 <div class="reveal mt-12 space-y-5">
                     <p class="label">{{ __('site.contact.or_write') }}</p>
                     @if ($email = Setting::get('email'))
-                        <a href="mailto:{{ $email }}" class="flex items-center gap-4 text-xl transition hover:text-amber"><x-icon name="mail" class="text-amber" /> {{ $email }}</a>
+                        <a href="mailto:{{ $email }}" class="flex items-center gap-4 text-xl transition hover:text-amber"><x-icon name="mail" class="size-6 shrink-0 text-amber" /> {{ $email }}</a>
                     @endif
                     @if ($phone = Setting::get('phone'))
-                        <a href="tel:{{ preg_replace('/[^+\d]/', '', $phone) }}" class="flex items-center gap-4 text-xl transition hover:text-amber"><x-icon name="phone" class="text-amber" /> {{ $phone }}</a>
+                        <a href="tel:{{ preg_replace('/[^+\d]/', '', $phone) }}" class="flex items-center gap-4 text-xl transition hover:text-amber"><x-icon name="phone" class="size-6 shrink-0 text-amber" /> {{ $phone }}</a>
                     @endif
-                    <p class="flex items-center gap-4 text-xl"><x-icon name="pin" class="text-amber" /> {{ Setting::text('location', 'Yerevan, Armenia') }}</p>
+                    <p class="flex items-center gap-4 text-xl"><x-icon name="pin" class="size-6 shrink-0 text-amber" /> {{ Setting::text('location', 'Yerevan, Armenia') }}</p>
                     <div class="pt-4">@include('partials.socials')</div>
                 </div>
             </div>

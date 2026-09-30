@@ -1,91 +1,84 @@
 @php use App\Models\Setting; use App\Support\YouTube; use App\Support\Media; @endphp
 <div>
-    {{-- HERO --}}
-    <section class="relative flex min-h-[100svh] items-end overflow-hidden bg-ink">
-        @if ($showreel)
-            <img src="{{ YouTube::thumbnail($showreel) }}" alt="" class="absolute inset-0 size-full object-cover opacity-40" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='{{ YouTube::thumbnail($showreel, 'hqdefault') }}'}else{this.style.display='none'}">
-            <div class="absolute inset-0 overflow-hidden" wire:ignore>
-                <iframe class="video-bg opacity-60" src="{{ YouTube::background($showreel) }}" title="Showreel" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
-            </div>
-        @elseif ($reels->count() >= 3)
-            {{-- Живая стена из рилсов: на компьютере играют без звука, на телефоне — кадры. --}}
-            <div class="absolute inset-0 flex gap-2 opacity-45 sm:gap-3" wire:ignore aria-hidden="true">
-                @foreach ($reels->take(5) as $reel)
-                    <div class="relative h-full flex-1 overflow-hidden {{ $loop->index === 2 ? 'hidden sm:block' : '' }} {{ $loop->index >= 3 ? 'hidden lg:block' : '' }}">
-                        <video src="{{ $reel->videoFileUrl() }}" poster="{{ $reel->coverUrl() }}" muted loop playsinline preload="none"
-                               x-data x-init="if (window.matchMedia('(min-width: 640px)').matches) { $el.preload = 'auto'; $el.play().catch(() => {}) }"
-                               class="size-full object-cover"></video>
-                    </div>
-                @endforeach
-            </div>
-        @elseif ($hero = Setting::get('hero_image'))
-            <img src="{{ Media::url($hero) }}" alt="" class="absolute inset-0 size-full object-cover opacity-50">
-        @else
-            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(224,168,78,.18),transparent_55%),radial-gradient(ellipse_at_80%_80%,rgba(239,68,68,.10),transparent_50%)]"></div>
-        @endif
-        <div class="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-ink/60"></div>
-
-        {{-- Видоискатель --}}
-        <div class="pointer-events-none absolute inset-5 hidden sm:block lg:inset-10" aria-hidden="true"
-             x-data="{ t: 0 }" x-init="setInterval(() => t++, 1000 / 24)">
-            <span class="absolute top-16 left-0 size-8 border-t border-l border-bone/40"></span>
-            <span class="absolute top-16 right-0 size-8 border-t border-r border-bone/40"></span>
-            <span class="absolute bottom-0 left-0 size-8 border-b border-l border-bone/40"></span>
-            <span class="absolute right-0 bottom-0 size-8 border-r border-b border-bone/40"></span>
-            <div class="absolute top-20 left-12 flex items-center gap-2 font-mono text-xs tracking-widest text-bone/70">
-                <span class="size-2 rounded-full bg-rec animate-rec"></span> REC
-            </div>
-            <div class="absolute top-20 right-12 font-mono text-xs tracking-widest text-bone/70"
-                 x-text="[Math.floor(t/86400), Math.floor(t/1440)%60, Math.floor(t/24)%60, t%24].map(n => String(n).padStart(2,'0')).join(':')"></div>
-            <div class="absolute bottom-6 left-12 font-mono text-[10px] tracking-[0.3em] text-bone/50">4K · 24 FPS · ISO 800</div>
-        </div>
-
-        <div class="container-x relative z-10 pb-20 pt-40 sm:pb-28">
+    {{-- HERO: имя крупно слева, кадр в видоискателе справа --}}
+    @php
+        $heroFrames = $featured->merge($reels)->filter(fn ($w) => $w->coverUrl())->values();
+        $heroMain = ($hero = Setting::get('hero_image')) ? Media::url($hero) : $heroFrames->first()?->coverUrl();
+        $heroWork = $heroFrames->get(1);
+        $heroReel = $reels->first();
+    @endphp
+    <section class="container-x grid gap-12 pt-32 pb-20 sm:pt-40 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] lg:gap-14 lg:pb-24">
+        <div class="flex flex-col justify-center">
             <p class="kicker reveal">{{ Setting::text('hero_kicker', __('site.hero.kicker')) }}</p>
-            <h1 class="display reveal mt-6 text-[clamp(3rem,10.5vw,11rem)] [overflow-wrap:anywhere]">
+            <h1 class="display reveal mt-8 text-[clamp(4rem,10.5vw,10rem)]">
                 @include('partials.hero-name')
             </h1>
-            <div class="reveal mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-                <div x-data="{ roles: @js(__('site.hero.roles')), i: 0 }" x-init="setInterval(() => i = (i + 1) % roles.length, 2200)"
-                     class="flex items-baseline gap-3 text-xl sm:text-2xl">
-                    <span class="text-ash">/</span>
-                    <span class="relative inline-block h-[1.3em] min-w-[12ch] overflow-hidden">
-                        <template x-for="(role, idx) in roles" :key="idx">
-                            <span class="absolute inset-0 transition duration-700"
-                                  :class="idx === i ? 'translate-y-0 opacity-100' : (idx < i ? '-translate-y-full opacity-0' : 'translate-y-full opacity-0')"
-                                  x-text="role"></span>
-                        </template>
-                    </span>
-                </div>
-                <div class="flex flex-wrap gap-3">
-                    @if ($showreel)
-                        <button type="button" class="btn-primary" x-on:click="$dispatch('play-video', { src: @js(YouTube::embed($showreel, true)) })">
-                            <x-icon name="play" class="size-4" /> {{ __('site.hero.play_reel') }}
-                        </button>
-                    @endif
-                    <a href="{{ route('works.index') }}" wire:navigate class="{{ $showreel ? 'btn-ghost' : 'btn-primary' }}">{{ __('site.hero.cta_works') }} <x-icon name="arrow-right" class="size-4" /></a>
-                    <a href="{{ route('contact') }}" wire:navigate class="btn-ghost">{{ __('site.hero.cta_contact') }}</a>
-                </div>
+            <p class="reveal mt-10 max-w-md text-lg leading-relaxed text-ash">{{ __('site.meta_description') }}</p>
+            <div class="reveal mt-8 flex flex-wrap gap-2">
+                @foreach (__('site.hero.roles') as $role)
+                    <span class="rounded-full border border-line bg-white/50 px-4 py-2 text-sm">{{ $role }}</span>
+                @endforeach
+            </div>
+            <div class="reveal mt-10 flex flex-wrap gap-3">
+                @if ($showreel)
+                    <button type="button" class="btn-primary" x-on:click="$dispatch('play-video', { src: @js(YouTube::embed($showreel, true)) })">
+                        <x-icon name="play" class="size-4" /> {{ __('site.hero.play_reel') }}
+                    </button>
+                @endif
+                <a href="{{ route('works.index') }}" wire:navigate class="{{ $showreel ? 'btn-ghost' : 'btn-primary' }}">{{ __('site.hero.cta_works') }} <x-icon name="arrow-right" class="size-4" /></a>
+                <a href="{{ route('contact') }}" wire:navigate class="btn-ghost">{{ __('site.hero.cta_contact') }}</a>
             </div>
         </div>
 
-        <a href="#featured" class="absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-3 text-[10px] tracking-[0.4em] text-ash uppercase lg:flex">
-            {{ __('site.hero.scroll') }}
-            <span class="h-12 w-px bg-gradient-to-b from-bone/60 to-transparent"></span>
-        </a>
+        <div class="reveal relative h-[70svh] min-h-[420px] lg:h-auto lg:min-h-[640px]">
+            <div class="absolute inset-0 overflow-hidden rounded-md bg-graphite lg:left-14">
+                @if ($heroReel)
+                    <video src="{{ $heroReel->videoFileUrl() }}" poster="{{ $heroMain }}" muted loop playsinline preload="none" wire:ignore
+                           x-data x-init="if (window.matchMedia('(min-width: 640px)').matches) { $el.preload = 'auto'; $el.play().catch(() => {}) }"
+                           class="size-full object-cover"></video>
+                @elseif ($heroMain)
+                    <img src="{{ $heroMain }}" alt="" class="size-full object-cover">
+                @endif
+                <div class="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/30"></div>
+                {{-- Видоискатель --}}
+                <div class="viewfinder pointer-events-none absolute inset-5 font-mono text-[11px] tracking-[0.2em] text-white" aria-hidden="true"
+                     x-data="{ t: 0 }" x-init="setInterval(() => t++, 1000 / 24)">
+                    <i class="top-0 left-0 border-t border-l"></i><i class="top-0 right-0 border-t border-r"></i>
+                    <i class="bottom-0 left-0 border-b border-l"></i><i class="right-0 bottom-0 border-r border-b"></i>
+                    <span class="absolute top-3 left-10 flex items-center gap-2"><span class="size-2 rounded-full bg-rec animate-rec"></span> REC</span>
+                    <span class="absolute top-3 right-10" x-text="[Math.floor(t/86400), Math.floor(t/1440)%60, Math.floor(t/24)%60, t%24].map(n => String(n).padStart(2,'0')).join(':')">00:00:00:00</span>
+                    <span class="absolute bottom-3 left-10 text-[10px] tracking-[0.3em] text-white/80">4K · 24 FPS · ISO 800</span>
+                </div>
+            </div>
+            @if ($heroWork)
+                <a href="{{ route('works.show', $heroWork) }}" wire:navigate class="absolute bottom-14 left-0 hidden w-48 overflow-hidden rounded-md border-8 border-ink shadow-[0_30px_60px_-20px_rgba(40,30,20,.45)] transition hover:-translate-y-1 sm:block xl:w-56">
+                    <img src="{{ $heroWork->coverUrl() }}" alt="{{ $heroWork->title }}" class="aspect-[4/5] w-full object-cover">
+                </a>
+                <div class="absolute top-16 -right-3 hidden rounded-md border border-line bg-ink px-5 py-4 shadow-[0_20px_40px_-20px_rgba(40,30,20,.35)] sm:block">
+                    <p class="font-mono text-[10px] tracking-[0.25em] text-ash uppercase">{{ __('site.home.featured_kicker') }}</p>
+                    <p class="display mt-1.5 text-2xl">{{ \Illuminate\Support\Str::limit($heroWork->title, 26) }}</p>
+                </div>
+            @endif
+        </div>
     </section>
 
-    {{-- Бегущая строка --}}
-    <div class="overflow-hidden border-y border-line bg-coal py-5" aria-hidden="true">
-        <div class="flex w-max animate-marquee gap-10 whitespace-nowrap">
-            @for ($k = 0; $k < 4; $k++)
-                @foreach (__('site.hero.roles') as $role)
-                    <span class="display text-3xl text-bone/80 sm:text-4xl">{{ $role }}</span>
-                    <span class="display text-3xl text-amber sm:text-4xl">✦</span>
-                @endforeach
-            @endfor
+    {{-- Плёнка из кадров --}}
+    @if ($heroFrames->count() >= 4)
+        <div class="overflow-hidden bg-bone py-4" aria-hidden="true">
+            <div class="film-holes"></div>
+            <div class="flex w-max animate-marquee gap-2.5 py-3.5">
+                @for ($k = 0; $k < 2; $k++)
+                    @foreach ($heroFrames->take(10) as $i => $frame)
+                        <div class="relative h-32 w-52 shrink-0 overflow-hidden sm:h-40 sm:w-60">
+                            <img src="{{ $frame->coverUrl() }}" alt="" loading="lazy" class="size-full object-cover">
+                            <span class="absolute bottom-1.5 left-2 font-mono text-[9px] tracking-[0.2em] text-white/80">{{ 12 + $i }}A</span>
+                        </div>
+                    @endforeach
+                @endfor
+            </div>
+            <div class="film-holes"></div>
         </div>
-    </div>
+    @endif
 
     {{-- Избранные работы --}}
     <section id="featured" class="py-24 sm:py-32">
@@ -122,10 +115,10 @@
                 @continue($value <= 0)
                 <div class="reveal px-2 py-10 sm:px-10 sm:py-14" x-data="{ n: 0, target: {{ $value }} }"
                      x-init="new IntersectionObserver((entries, obs) => { if (!entries[0].isIntersecting) return; obs.disconnect(); let s = performance.now(); const tick = (now) => { const p = Math.min(1, (now - s) / 1600); n = Math.round(target * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(tick) }; requestAnimationFrame(tick) }).observe($el)">
-                    <p class="display text-6xl text-amber sm:text-7xl">
-                        <span x-text="n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : (n >= 10000 ? Math.round(n / 1000) + 'K' : n)">{{ $value }}</span>+
+                    <p class="display text-7xl sm:text-8xl">
+                        <span x-text="n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : (n >= 10000 ? Math.round(n / 1000) + 'K' : n)">{{ $value }}</span><sup class="ml-1 align-top text-4xl text-amber">+</sup>
                     </p>
-                    <p class="mt-3 text-sm tracking-wider text-ash uppercase">{{ __('site.home.stats.'.$key) }}</p>
+                    <p class="mt-4 font-mono text-[11px] tracking-[0.2em] text-ash uppercase">{{ __('site.home.stats.'.$key) }}</p>
                 </div>
             @endforeach
         </div>
@@ -141,8 +134,8 @@
             <div class="mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
                 @foreach (__('site.services') as $n => $service)
                     <div class="group reveal relative bg-ink p-8 transition duration-500 hover:bg-coal sm:p-10">
-                        <span class="absolute top-8 right-8 font-mono text-xs text-smoke">0{{ $n + 1 }}</span>
-                        <span class="grid size-14 place-items-center rounded-2xl border border-line text-amber transition duration-500 group-hover:border-amber group-hover:bg-amber group-hover:text-ink">
+                        <span class="absolute top-8 right-8 font-mono text-xs text-amber">0{{ $n + 1 }}</span>
+                        <span class="grid size-14 place-items-center rounded-2xl border border-line text-amber transition duration-500 group-hover:border-bone group-hover:bg-bone group-hover:text-ink">
                             <x-icon :name="$service['icon']" class="size-6" />
                         </span>
                         <h3 class="display mt-8 text-3xl">{{ $service['title'] }}</h3>
@@ -199,12 +192,11 @@
                 @foreach ($reels as $reel)
                     <a href="{{ route('works.show', $reel) }}" wire:navigate
                        x-data x-on:mouseenter="$refs.v.play().catch(() => {})" x-on:mouseleave="$refs.v.pause()"
-                       class="group relative aspect-[9/16] w-[62vw] shrink-0 snap-start overflow-hidden rounded-2xl bg-graphite sm:w-[260px]">
+                       class="group relative aspect-[9/16] w-[62vw] shrink-0 snap-start overflow-hidden rounded-md bg-graphite sm:w-[260px]" title="{{ $reel->title }}">
                         <img src="{{ $reel->coverUrl() }}" alt="{{ $reel->title }}" loading="lazy" class="absolute inset-0 size-full object-cover">
                         <video x-ref="v" src="{{ $reel->videoFileUrl() }}" muted loop playsinline preload="none"
                                class="absolute inset-0 size-full object-cover opacity-0 transition duration-500 group-hover:opacity-100"></video>
-                        <div class="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent"></div>
-                        <p class="absolute inset-x-0 bottom-0 p-4 text-sm font-medium">{{ $reel->title }}</p>
+                        <span class="absolute top-3 right-3 grid size-9 place-items-center rounded-full bg-white/90 text-black"><x-icon name="play" class="ml-0.5 size-3.5" /></span>
                     </a>
                 @endforeach
             </div>
@@ -231,8 +223,8 @@
                             class="group w-[80vw] shrink-0 snap-start text-left sm:w-[420px]">
                         <div class="relative aspect-video overflow-hidden rounded-xl bg-graphite">
                             <img src="{{ YouTube::thumbnail($video->youtube_id, 'hqdefault') }}" alt="{{ $video->title }}" loading="lazy" class="size-full object-cover transition duration-700 group-hover:scale-105">
-                            <span class="absolute inset-0 grid place-items-center bg-ink/30 opacity-0 transition group-hover:opacity-100">
-                                <span class="grid size-14 place-items-center rounded-full bg-rec text-white"><x-icon name="play" class="ml-0.5 size-5" /></span>
+                            <span class="absolute inset-0 grid place-items-center bg-black/20 opacity-0 transition group-hover:opacity-100">
+                                <span class="grid size-14 place-items-center rounded-full bg-white text-black"><x-icon name="play" class="ml-0.5 size-5" /></span>
                             </span>
                         </div>
                         <p class="mt-4 line-clamp-2 font-medium leading-snug">{{ $video->title }}</p>
@@ -245,7 +237,7 @@
 
     {{-- Призыв --}}
     <section class="relative overflow-hidden py-28 sm:py-40">
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(224,168,78,.14),transparent_60%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(200,65,43,.07),transparent_60%)]"></div>
         <div class="container-x relative text-center">
             <h2 class="display reveal mx-auto max-w-5xl text-5xl sm:text-8xl">{{ __('site.home.cta_title') }}</h2>
             <p class="reveal mx-auto mt-8 max-w-xl text-lg text-ash">{{ __('site.home.cta_text') }}</p>
