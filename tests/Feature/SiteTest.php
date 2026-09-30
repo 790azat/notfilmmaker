@@ -33,6 +33,9 @@ class SiteTest extends TestCase
 
     public function test_first_user_becomes_admin_and_registration_closes(): void
     {
+        // миграции создают админа по умолчанию, здесь проверяем пустую базу
+        User::query()->delete();
+
         Livewire::test(Register::class)
             ->set('name', 'Hrach')->set('email', 'h@example.com')
             ->set('password', 'secret123')->set('password_confirmation', 'secret123')
