@@ -3,6 +3,7 @@
 namespace App\Livewire\Works;
 
 use App\Models\Work;
+use App\Support\Seo;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -32,6 +33,12 @@ class Show extends Component
                 'title' => $this->work->title,
                 'description' => Str::limit(strip_tags($this->work->excerpt ?: $this->work->description ?: ''), 160) ?: null,
                 'ogImage' => $this->work->coverUrl(),
+                'ogType' => $this->work->hasVideo() ? 'video.other' : 'article',
+                'schema' => [Seo::work($this->work), Seo::breadcrumbs([
+                    [__('site.nav.home'), '/'],
+                    [__('site.works.title'), route('works.index', absolute: false)],
+                    [$this->work->title, route('works.show', $this->work, false)],
+                ])],
             ]);
     }
 }
