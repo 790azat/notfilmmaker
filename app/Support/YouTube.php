@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Setting;
 use App\Models\Work;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -66,7 +67,7 @@ class YouTube
      */
     public static function latest(string $channelId): array
     {
-        $response = Http::timeout(15)
+        $response = Http::timeout(10)
             ->withHeaders(['User-Agent' => 'Mozilla/5.0 (portfolio-sync)'])
             ->get('https://www.youtube.com/feeds/videos.xml', ['channel_id' => $channelId]);
 
@@ -121,6 +122,28 @@ class YouTube
         }
 
         return $added;
+    }
+
+    /**
+     * Живой сайт подтягивает свежие видео сам: не чаще раза в 6 часов,
+     * после отправки ответа посетителю. Cron делает то же самое раз в сутки.
+     */
+    public static function syncIfStale(): void
+    {
+        if (! Setting::get('youtube_autosync', true)) {
+            return;
+        }
+        $channel = static::channelId(Setting::get('youtube_channel_id'));
+        $last = Setting::get('youtube_synced_at');
+        if (! $channel || ($last && Carbon::parse($last)->gt(now()->subHours(6)))) {
+            return;
+        }
+        Setting::put('youtube_synced_at', now()->toIso8601String());
+        try {
+            static::import($channel);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public static function guessCategory(string $text): string
