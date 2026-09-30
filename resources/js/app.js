@@ -1,5 +1,6 @@
 import './uploader';
 import './instagram-archive';
+import './chat';
 
 // Появление блоков при прокрутке (работает и после wire:navigate).
 const observer = new IntersectionObserver(

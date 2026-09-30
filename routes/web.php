@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\UploadController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CronController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\TelegramController;
 use App\Livewire;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +20,9 @@ Route::get('/sitemap.xml', SitemapController::class);
 Route::get('/cron/youtube', [CronController::class, 'youtube']);
 Route::get('/cron/sync', [CronController::class, 'youtube']);
 Route::get('/cron/instagram-archive', [CronController::class, 'archive']);
+Route::post('/chat/send', [ChatController::class, 'send'])->name('chat.send');
+Route::get('/chat/poll', [ChatController::class, 'poll'])->name('chat.poll');
+Route::post('/telegram/webhook', TelegramController::class)->name('telegram.webhook');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', Livewire\Auth\Login::class)->name('login');

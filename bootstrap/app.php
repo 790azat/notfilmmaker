@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->web(prepend: [AutoMigrate::class]);
         $middleware->web(append: [SetLocale::class]);
+        $middleware->validateCsrfTokens(except: ['telegram/webhook']);
         $middleware->alias(['admin' => EnsureAdmin::class]);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('admin.dashboard'));

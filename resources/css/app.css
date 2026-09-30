@@ -161,3 +161,43 @@
     .reveal { opacity: 1; transform: none; transition: none; }
     .grain, .animate-marquee { animation: none; }
 }
+
+/* Живой чат */
+@layer components {
+    .chat-msg {
+        @apply max-w-[85%] rounded-2xl px-3.5 py-2.5 break-words whitespace-pre-wrap;
+    }
+
+    .chat-in {
+        @apply self-start rounded-bl-md bg-graphite text-bone;
+    }
+
+    .chat-out {
+        @apply self-end rounded-br-md bg-amber text-ink;
+    }
+
+    .chat-note {
+        @apply self-center text-center text-xs text-rec;
+    }
+}
+
+/* Вне слоёв, чтобы перебить утилиты окна: закрыто/открыто и полный экран на телефоне */
+.chat-box {
+    display: none;
+}
+
+.chat-box.is-open {
+    display: flex;
+}
+
+@media (max-width: 639px) {
+    .chat-box.is-open {
+        inset: 8px;
+        width: auto;
+        height: auto;
+    }
+
+    html.chat-open .chat-fab {
+        display: none;
+    }
+}

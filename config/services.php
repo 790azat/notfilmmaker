@@ -39,6 +39,10 @@ return [
         'token' => env('BLOB_READ_WRITE_TOKEN'),
     ],
 
+    'telegram' => [
+        'token' => env('TELEGRAM_BOT_TOKEN'),
+    ],
+
     'cron' => [
         'secret' => env('CRON_SECRET'),
     ],

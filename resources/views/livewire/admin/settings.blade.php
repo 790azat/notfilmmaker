@@ -115,6 +115,28 @@
         </div>
 
         <div class="card space-y-5">
+            <h2 class="font-medium">Telegram</h2>
+            @if ($tgBot)
+                <div class="flex items-center justify-between gap-4 rounded-xl border border-line px-4 py-3 text-sm">
+                    <span>{{ __('admin.telegram.bot') }} <a href="https://t.me/{{ $tgBot }}" target="_blank" rel="noopener" class="font-bold hover:text-amber">{{ '@'.$tgBot }}</a></span>
+                    <button type="button" wire:click="disconnectTelegram" wire:confirm="{{ __('admin.telegram.confirm_disconnect') }}" class="text-xs text-smoke hover:text-rec">{{ __('admin.telegram.disconnect') }}</button>
+                </div>
+                <p class="text-sm text-ash">{{ trans_choice('admin.telegram.admins', count(\App\Support\Telegram::admins())) }}</p>
+                <a href="{{ \App\Support\Telegram::adminLink() }}" target="_blank" rel="noopener" class="btn-primary w-full !py-2.5"><x-icon name="send" class="size-4" /> {{ __('admin.telegram.link') }}</a>
+                <p class="text-xs text-smoke">{{ __('admin.telegram.hint') }}</p>
+            @else
+                <p class="text-sm text-ash">{{ __('admin.telegram.intro') }}</p>
+                <div>
+                    <label class="label">{{ __('admin.telegram.token') }}</label>
+                    <input wire:model="tgToken" type="password" class="input" autocomplete="off" placeholder="123456789:AA…">
+                    @error('tgToken') <p class="mt-1.5 text-xs text-rec">{{ $message }}</p> @enderror
+                </div>
+                <button type="button" wire:click="connectTelegram" wire:loading.attr="disabled" class="btn-ghost w-full !py-2.5">{{ __('admin.telegram.connect') }}</button>
+                <p class="text-xs text-smoke">{{ __('admin.telegram.howto') }}</p>
+            @endif
+        </div>
+
+        <div class="card space-y-5">
             <h2 class="font-medium">{{ __('admin.settings.images') }}</h2>
             @foreach (['portrait' => 'setPortrait', 'hero_image' => 'setHeroImage', 'og_image' => 'setOgImage'] as $key => $method)
                 <div class="flex items-start gap-4">
