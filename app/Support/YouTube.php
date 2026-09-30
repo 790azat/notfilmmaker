@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Setting;
 use App\Models\Work;
 use Carbon\Carbon;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -61,23 +62,49 @@ class YouTube
     }
 
     /**
-     * Последние видео канала из публичной RSS-ленты YouTube (ключ API не нужен).
+     * Последние видео канала. Сначала публичные RSS-ленты (канала и плейлиста загрузок),
+     * а если YouTube их не отдаёт (бывает с облачных IP) — страница «Видео» канала.
      *
      * @return array<int, array{id: string, title: string, description: string, published: Carbon, views: int}>
      */
     public static function latest(string $channelId): array
     {
-        $response = Http::timeout(10)
-            ->withHeaders(['User-Agent' => 'Mozilla/5.0 (portfolio-sync)'])
-            ->get('https://www.youtube.com/feeds/videos.xml', ['channel_id' => $channelId]);
-
-        if (! $response->successful()) {
-            throw new RuntimeException('YouTube RSS: HTTP '.$response->status());
+        $errors = [];
+        $feeds = [
+            ['channel_id' => $channelId],
+            ['playlist_id' => 'UU'.substr($channelId, 2)],
+        ];
+        foreach ($feeds as $query) {
+            $response = static::http()->get('https://www.youtube.com/feeds/videos.xml', $query);
+            if ($response->successful() && ($videos = static::parseFeed($response->body()))) {
+                return $videos;
+            }
+            $errors[] = 'RSS '.$response->status();
         }
 
-        $xml = simplexml_load_string($response->body());
+        $response = static::http()->get("https://www.youtube.com/channel/{$channelId}/videos", ['hl' => 'en']);
+        if ($response->successful() && ($videos = static::parseChannelPage($response->body()))) {
+            return $videos;
+        }
+        $errors[] = 'page '.$response->status();
+
+        throw new RuntimeException('YouTube: '.implode(', ', $errors));
+    }
+
+    protected static function http(): PendingRequest
+    {
+        return Http::timeout(10)->withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36',
+            'Accept-Language' => 'en-US,en;q=0.9',
+            'Cookie' => 'SOCS=CAI; CONSENT=YES+1',
+        ]);
+    }
+
+    public static function parseFeed(string $body): array
+    {
+        $xml = @simplexml_load_string($body);
         if (! $xml) {
-            throw new RuntimeException('YouTube RSS: invalid XML');
+            return [];
         }
 
         $videos = [];
@@ -95,6 +122,54 @@ class YouTube
         }
 
         return $videos;
+    }
+
+    /** Разбирает ytInitialData со страницы «Видео» канала. */
+    public static function parseChannelPage(string $html): array
+    {
+        if (! preg_match('/var ytInitialData = (\{.*?\});<\/script>/s', $html, $m)) {
+            return [];
+        }
+        $data = json_decode($m[1], true);
+        if (! is_array($data)) {
+            return [];
+        }
+
+        $videos = [];
+        $walk = function ($node) use (&$walk, &$videos) {
+            if (! is_array($node)) {
+                return;
+            }
+            if (isset($node['videoRenderer']['videoId'])) {
+                $v = $node['videoRenderer'];
+                $id = $v['videoId'];
+                $videos[$id] ??= [
+                    'id' => $id,
+                    'title' => trim($v['title']['runs'][0]['text'] ?? $v['title']['simpleText'] ?? ''),
+                    'description' => trim(implode('', array_column($v['descriptionSnippet']['runs'] ?? [], 'text'))),
+                    'published' => static::relativeDate($v['publishedTimeText']['simpleText'] ?? ''),
+                    'views' => (int) preg_replace('/\D/', '', $v['viewCountText']['simpleText'] ?? '0'),
+                ];
+
+                return;
+            }
+            foreach ($node as $child) {
+                $walk($child);
+            }
+        };
+        $walk($data);
+
+        return array_values(array_filter($videos, fn ($v) => $v['title'] !== ''));
+    }
+
+    /** «3 years ago» → примерная дата. */
+    public static function relativeDate(string $text): Carbon
+    {
+        if (preg_match('/(\d+)\s+(second|minute|hour|day|week|month|year)/', $text, $m)) {
+            return now()->sub($m[2], (int) $m[1]);
+        }
+
+        return now();
     }
 
     /** Добавляет в портфолио новые видео с канала. Возвращает число добавленных работ. */
@@ -135,7 +210,9 @@ class YouTube
         }
         $channel = static::channelId(Setting::get('youtube_channel_id'));
         $last = Setting::get('youtube_synced_at');
-        if (! $channel || ($last && Carbon::parse($last)->gt(now()->subHours(6)))) {
+        // Пока с канала ничего не импортировано, пробуем чаще.
+        $every = Work::whereNotNull('youtube_id')->exists() ? 360 : 10;
+        if (! $channel || ($last && Carbon::parse($last)->gt(now()->subMinutes($every)))) {
             return;
         }
         Setting::put('youtube_synced_at', now()->toIso8601String());
