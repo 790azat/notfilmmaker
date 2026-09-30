@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Message;
 use App\Models\Setting;
 use App\Models\User;
+use App\Support\Telegram;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Validate;
@@ -71,6 +72,9 @@ class Contact extends Component
                 report($e);
             }
         }
+
+        // И в Telegram владельцу, если бот подключён.
+        Telegram::notify("✉️ Заявка с формы на сайте\n{$message->name}, {$message->email}".($message->phone ? ", {$message->phone}" : '').($message->project_type ? "\nТип: {$message->project_type}" : '')."\n\n{$message->body}", 'mail:'.$message->id);
 
         $this->reset(['name', 'email', 'phone', 'project_type', 'body']);
         $this->sent = true;

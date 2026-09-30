@@ -96,6 +96,12 @@
         </div>
     </footer>
 
+    @if (\App\Support\Telegram::enabled() && \App\Support\Telegram::admins())
+        @persist('chat')
+            @include('partials.chat')
+        @endpersist
+    @endif
+
     {{-- Плеер во всплывающем окне --}}
     <div x-cloak x-show="video" x-transition.opacity class="fixed inset-0 z-[80] flex items-center justify-center bg-black/95 p-4 sm:p-10" x-on:click.self="video = null">
         <button type="button" class="absolute top-5 right-5 grid size-12 place-items-center rounded-full border border-bone/30 text-bone hover:bg-bone hover:text-ink" x-on:click="video = null" aria-label="{{ __('site.nav.close') }}">

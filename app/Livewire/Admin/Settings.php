@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Setting;
 use App\Support\Instagram;
 use App\Support\Media;
+use App\Support\Telegram;
 use App\Support\YouTube;
 use Livewire\Component;
 use Throwable;
@@ -31,6 +32,10 @@ class Settings extends Component
 
     public ?string $igAccount = null;
 
+    public string $tgToken = '';
+
+    public ?string $tgBot = null;
+
     public function mount(): void
     {
         foreach (self::TRANSLATABLE as $key) {
@@ -43,6 +48,7 @@ class Settings extends Component
         $this->f['registration_open'] = (bool) Setting::get('registration_open', false);
         $this->f['youtube_autosync'] = (bool) Setting::get('youtube_autosync', true);
         $this->f['instagram_autosync'] = (bool) Setting::get('instagram_autosync', true);
+        $this->tgBot = Telegram::enabled() ? Setting::get('telegram_bot', '✓') : null;
         $this->igAccount = Instagram::token() ? Setting::get('instagram_username', '✓') : null;
         foreach (self::IMAGES as $key) {
             $this->images[$key] = Setting::get($key);
@@ -148,6 +154,26 @@ class Settings extends Component
             Setting::put($key, null);
         }
         $this->igAccount = null;
+    }
+
+    public function connectTelegram(): void
+    {
+        $this->validate(['tgToken' => ['required', 'string', 'regex:/^\d+:[\w-]{30,}$/']]);
+        try {
+            $this->tgBot = Telegram::connect(trim($this->tgToken), route('telegram.webhook'));
+        } catch (Throwable $e) {
+            $this->addError('tgToken', $e->getMessage());
+
+            return;
+        }
+        $this->tgToken = '';
+        $this->dispatch('toast', text: __('admin.telegram.connected', ['name' => $this->tgBot]));
+    }
+
+    public function disconnectTelegram(): void
+    {
+        Telegram::disconnect();
+        $this->tgBot = null;
     }
 
     /** Одна порция импорта; кнопка в админке вызывает её, пока есть что забирать. */
