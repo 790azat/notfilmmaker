@@ -2,21 +2,21 @@
 <div>
     {{-- HERO --}}
     <section class="relative flex min-h-[100svh] items-end overflow-hidden bg-ink">
-        @if ($showreel)
-            <img src="{{ YouTube::thumbnail($showreel) }}" alt="" class="absolute inset-0 size-full object-cover opacity-40" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='{{ YouTube::thumbnail($showreel, 'hqdefault') }}'}else{this.style.display='none'}">
-            <div class="absolute inset-0 overflow-hidden" wire:ignore>
-                <iframe class="video-bg opacity-60" src="{{ YouTube::background($showreel) }}" title="Showreel" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
-            </div>
-        @elseif ($reels->count() >= 3)
-            {{-- Живая стена из рилсов: на компьютере играют без звука, на телефоне — кадры. --}}
+        @if ($reels->count() >= 3)
+            {{-- Живая стена из рилсов: на компьютере играют без звука, на телефоне — кадры. Шоурил с YouTube остаётся на кнопке. --}}
             <div class="absolute inset-0 flex gap-2 opacity-45 sm:gap-3" wire:ignore aria-hidden="true">
                 @foreach ($reels->take(5) as $reel)
-                    <div class="relative h-full flex-1 overflow-hidden {{ $loop->index === 2 ? 'hidden sm:block' : '' }} {{ $loop->index >= 3 ? 'hidden lg:block' : '' }}">
+                    <div class="relative h-full flex-1 overflow-hidden {{ $loop->index >= 3 ? 'hidden lg:block' : '' }}">
                         <video src="{{ $reel->videoFileUrl() }}" poster="{{ $reel->coverUrl() }}" muted loop playsinline preload="none"
                                x-data x-init="if (window.matchMedia('(min-width: 640px)').matches) { $el.preload = 'auto'; $el.play().catch(() => {}) }"
                                class="size-full object-cover"></video>
                     </div>
                 @endforeach
+            </div>
+        @elseif ($showreel)
+            <img src="{{ YouTube::thumbnail($showreel) }}" alt="" class="absolute inset-0 size-full object-cover opacity-40" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='{{ YouTube::thumbnail($showreel, 'hqdefault') }}'}else{this.style.display='none'}">
+            <div class="absolute inset-0 overflow-hidden" wire:ignore>
+                <iframe class="video-bg opacity-60" src="{{ YouTube::background($showreel) }}" title="Showreel" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
             </div>
         @elseif ($hero = Setting::get('hero_image'))
             <img src="{{ Media::url($hero) }}" alt="" class="absolute inset-0 size-full object-cover opacity-50">
