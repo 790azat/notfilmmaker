@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Setting;
+use App\Support\HeroReels;
 use App\Support\Instagram;
 use App\Support\Media;
 use App\Support\Telegram;
@@ -27,6 +28,9 @@ class Settings extends Component
     public array $f = [];
 
     public array $images = [];
+
+    /** Видео в шапке главной по слотам (id работ). */
+    public array $heroReels = [];
 
     public string $igToken = '';
 
@@ -53,6 +57,7 @@ class Settings extends Component
         foreach (self::IMAGES as $key) {
             $this->images[$key] = Setting::get($key);
         }
+        $this->heroReels = array_pad(array_map('strval', HeroReels::chosenIds()), HeroReels::SLOTS, '');
     }
 
     public function setPortrait(string $path): void
@@ -108,6 +113,8 @@ class Settings extends Component
         foreach (self::FLAGS as $key) {
             Setting::put($key, (bool) ($this->f[$key] ?? false));
         }
+        $ids = array_values(array_unique(array_filter(array_map('intval', array_slice($this->heroReels, 0, HeroReels::SLOTS)))));
+        Setting::put('hero_reels', $ids ?: null);
 
         $this->dispatch('toast', text: __('admin.saved'));
     }
@@ -190,6 +197,8 @@ class Settings extends Component
 
     public function render()
     {
-        return view('livewire.admin.settings')->layout('layouts.admin', ['title' => __('admin.nav.settings')]);
+        return view('livewire.admin.settings', [
+            'reelOptions' => HeroReels::query()->with('media')->orderByDesc('published_at')->orderByDesc('id')->get(),
+        ])->layout('layouts.admin', ['title' => __('admin.nav.settings')]);
     }
 }

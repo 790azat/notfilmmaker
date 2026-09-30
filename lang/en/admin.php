@@ -117,7 +117,10 @@ return [
         'stats' => 'Home page numbers',
         'stats_hint' => 'Projects and views are counted automatically when this number is lower. 0 hides it.',
         'channel_hint' => 'The channel ID starts with UC. New videos appear on the site automatically once a day.',
-        'showreel_hint' => 'This video plays in the home page background. Empty uses the first featured work.',
+        'showreel_hint' => 'Opens with the “Play showreel” button on the home page. It plays in the background only when the site has fewer than three uploaded videos.',
+        'hero_reels' => 'Home screen videos',
+        'hero_reels_hint' => 'Pick up to five videos and their order, left to right. Phones show the first three. Empty slots are filled automatically. Remember to save.',
+        'hero_reels_auto' => 'Automatic',
         'fields' => [
             'name' => 'Artist name / brand',
             'hero_name' => 'Big home headline (2 words)',

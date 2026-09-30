@@ -49,6 +49,31 @@
         </div>
 
         <div class="card space-y-5">
+            <div>
+                <h2 class="font-medium">{{ __('admin.settings.hero_reels') }}</h2>
+                <p class="mt-1.5 text-xs text-smoke">{{ __('admin.settings.hero_reels_hint') }}</p>
+            </div>
+            @php $byId = $reelOptions->keyBy('id'); @endphp
+            @for ($slot = 0; $slot < \App\Support\HeroReels::SLOTS; $slot++)
+                @php $picked = $byId->get((int) ($heroReels[$slot] ?? 0)); @endphp
+                <div class="flex items-center gap-3">
+                    <span class="w-5 shrink-0 text-center font-mono text-sm text-smoke">{{ $slot + 1 }}</span>
+                    <div class="h-14 w-10 shrink-0 overflow-hidden rounded-md bg-graphite">
+                        @if ($picked?->coverUrl())
+                            <img src="{{ $picked->coverUrl() }}" alt="" class="size-full object-cover">
+                        @endif
+                    </div>
+                    <select wire:model.live="heroReels.{{ $slot }}" class="input">
+                        <option value="">{{ __('admin.settings.hero_reels_auto') }}</option>
+                        @foreach ($reelOptions as $option)
+                            <option value="{{ $option->id }}">{{ $option->title ?: '#'.$option->id }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endfor
+        </div>
+
+        <div class="card space-y-5">
             <h2 class="font-medium">YouTube</h2>
             <div>
                 <label class="label">{{ __('admin.settings.fields.youtube_channel_id') }}</label>

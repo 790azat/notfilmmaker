@@ -5,7 +5,7 @@
         $heroFrames = $featured->merge($reels)->filter(fn ($w) => $w->coverUrl())->values();
         $heroMain = ($hero = Setting::get('hero_image')) ? Media::url($hero) : $heroFrames->first()?->coverUrl();
         $heroWork = $heroFrames->get(1);
-        $heroReel = $reels->first();
+        $heroReel = $heroReels->first();
     @endphp
     <section class="container-x grid gap-12 pt-32 pb-20 sm:pt-40 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)] lg:gap-14 lg:pb-24">
         <div class="flex flex-col justify-center">
