@@ -45,7 +45,13 @@ class CronController extends Controller
         $token = hash_hmac('sha256', 'instagram-archive', (string) config('app.key'));
         abort_unless(hash_equals($token, (string) $request->query('token')), 401);
 
-        return response()->json(InstagramArchive::run());
+        try {
+            return response()->json(InstagramArchive::run());
+        } catch (Throwable $e) {
+            report($e);
+
+            return response()->json(['error' => class_basename($e).': '.$e->getMessage()], 500);
+        }
     }
 
     protected static function youtubeNew(): int
