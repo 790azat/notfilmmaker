@@ -1,0 +1,163 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../views';
+@source '../js';
+@source '../../app';
+
+@theme {
+    --font-sans: 'Inter', 'Noto Sans Armenian', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Oswald', 'Noto Sans Armenian', ui-sans-serif, system-ui, sans-serif;
+
+    --color-ink: #0b0b0c;
+    --color-coal: #121214;
+    --color-graphite: #1b1b1e;
+    --color-line: #2a2a2e;
+    --color-bone: #f3efe7;
+    --color-ash: #a09b93;
+    --color-smoke: #6d6963;
+    --color-amber: #e0a84e;
+    --color-amber-deep: #b97f28;
+    --color-rec: #ef4444;
+
+    --animate-marquee: marquee 40s linear infinite;
+    --animate-grain: grain 8s steps(10) infinite;
+    --animate-rec: rec 1.4s ease-in-out infinite;
+}
+
+@keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@keyframes grain {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-5%, -10%); }
+    30% { transform: translate(3%, -15%); }
+    50% { transform: translate(12%, 9%); }
+    70% { transform: translate(9%, 4%); }
+    90% { transform: translate(-1%, 7%); }
+}
+
+@keyframes rec {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .25; }
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-ink text-bone font-sans antialiased;
+        font-feature-settings: 'ss01', 'cv11';
+    }
+
+    ::selection {
+        @apply bg-amber text-ink;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .container-x {
+        @apply mx-auto w-full max-w-[1400px] px-5 sm:px-8 lg:px-12;
+    }
+
+    .kicker {
+        @apply inline-flex items-center gap-3 text-[11px] font-medium tracking-[0.35em] text-amber uppercase;
+    }
+
+    .kicker::before {
+        content: '';
+        @apply h-px w-8 bg-amber;
+    }
+
+    .display {
+        @apply font-display font-medium tracking-tight uppercase;
+        font-stretch: 75%;
+        line-height: 0.95;
+    }
+
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition duration-300 disabled:opacity-50;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition duration-300 disabled:opacity-50 bg-amber text-ink hover:bg-bone;
+    }
+
+    .btn-ghost {
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition duration-300 disabled:opacity-50 border border-bone/25 text-bone hover:border-bone hover:bg-bone hover:text-ink;
+    }
+
+    .input {
+        @apply w-full rounded-xl border border-line bg-coal px-4 py-3 text-bone placeholder:text-smoke transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/20;
+    }
+
+    .label {
+        @apply mb-2 block text-xs font-medium tracking-wider text-ash uppercase;
+    }
+
+    .error {
+        @apply mt-1.5 text-sm text-rec;
+    }
+
+    .grain {
+        @apply pointer-events-none fixed -inset-[50%] z-[60] opacity-[0.06];
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        animation: var(--animate-grain);
+    }
+
+    .reveal {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: opacity 1s cubic-bezier(.2, .7, .2, 1), transform 1s cubic-bezier(.2, .7, .2, 1);
+    }
+
+    .reveal.is-visible {
+        opacity: 1;
+        transform: none;
+    }
+
+    .video-bg {
+        @apply pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+        width: max(100vw, 177.78vh);
+        height: max(56.25vw, 100vh);
+    }
+
+    .prose-film {
+        @apply space-y-5 text-lg leading-relaxed text-bone/80;
+    }
+
+    .prose-film a {
+        @apply text-amber underline underline-offset-4;
+    }
+
+    /* Admin */
+    .card {
+        @apply rounded-2xl border border-line bg-coal p-5 sm:p-6;
+    }
+
+    .tab {
+        @apply rounded-full px-4 py-1.5 text-sm transition;
+    }
+
+    .tab-active {
+        @apply bg-bone text-ink;
+    }
+
+    .tab-idle {
+        @apply text-ash hover:text-bone;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .grain, .animate-marquee { animation: none; }
+}
