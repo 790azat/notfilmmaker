@@ -17,6 +17,7 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
-        "@vercel/blob": "^2.8.0"
+        "@vercel/blob": "^2.8.0",
+        "@zip.js/zip.js": "^2.18.2"
     }
 }

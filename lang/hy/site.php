@@ -77,6 +77,7 @@ return [
         'commercial' => 'Գովազդ',
         'documentary' => 'Վավերագրական',
         'photo' => 'Լուսանկար',
+        'reels' => 'Ռիլզեր',
         'backstage' => 'Կուլիսներից',
     ],
     'about' => [

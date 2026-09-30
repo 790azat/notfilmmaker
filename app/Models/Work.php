@@ -14,7 +14,7 @@ class Work extends Model
 {
     use HasTranslations;
 
-    public const CATEGORIES = ['film', 'short', 'series', 'music_video', 'commercial', 'documentary', 'photo', 'backstage'];
+    public const CATEGORIES = ['film', 'short', 'series', 'music_video', 'commercial', 'documentary', 'photo', 'reels', 'backstage'];
 
     public array $translatable = ['title', 'excerpt', 'description', 'role'];
 

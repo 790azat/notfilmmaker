@@ -10,7 +10,7 @@ function csrf() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 }
 
-async function resizeImage(file) {
+export async function resizeImage(file) {
     if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
         return file;
     }
@@ -80,6 +80,11 @@ async function uploadBlob(file, folder, onProgress) {
     return result.url;
 }
 
+/** Загрузка одного файла: в Vercel Blob или локально. Возвращает путь/ссылку. */
+export function uploadFile(file, folder, onProgress = () => {}) {
+    return window.__portfolio?.blob ? uploadBlob(file, folder, onProgress) : uploadLocal(file, folder, onProgress);
+}
+
 document.addEventListener('alpine:init', () => {
     window.Alpine.data('uploader', (options = {}) => ({
         folder: options.folder ?? 'uploads',
@@ -106,9 +111,7 @@ document.addEventListener('alpine:init', () => {
                 try {
                     const file = await resizeImage(original);
                     const onProgress = (p) => (entry.progress = p);
-                    const path = window.__portfolio?.blob
-                        ? await uploadBlob(file, this.folder, onProgress)
-                        : await uploadLocal(file, this.folder, onProgress);
+                    const path = await uploadFile(file, this.folder, onProgress);
                     entry.progress = 100;
                     await this.$wire.call(this.method, path, file.type || '');
                     entry.status = 'done';

@@ -81,7 +81,8 @@ class Instagram
             }
 
             foreach ($response->json('data', []) as $post) {
-                if (Work::where('instagram_id', $post['id'])->exists()) {
+                $code = static::shortcode($post['permalink'] ?? '') ?? $post['id'];
+                if (Work::where('instagram_id', $code)->exists()) {
                     continue;
                 }
                 if (microtime(true) - $started > $seconds) {
@@ -157,27 +158,66 @@ class Instagram
             }
         }
 
-        $title = static::title($caption, $published);
+        return static::createWork(
+            code: static::shortcode($post['permalink'] ?? '') ?? $post['id'],
+            kind: match ($type) {
+                'VIDEO' => 'video', 'CAROUSEL_ALBUM' => 'carousel', default => 'photo'
+            },
+            cover: $cover,
+            video: $video,
+            gallery: $gallery,
+            published: $published,
+            caption: $caption,
+        );
+    }
+
+    /** Код поста из ссылки: instagram.com/p/CODE/ или /reel/CODE/. */
+    public static function shortcode(string $url): ?string
+    {
+        return preg_match('~instagram\.com/(?:[\w.]+/)?(?:p|reel|tv)/([\w-]+)~', $url, $m) ? $m[1] : null;
+    }
+
+    /**
+     * Создаёт работу из поста Instagram (из API или из архива с постами).
+     *
+     * @param  array<int, array{type: string, path: string}>  $gallery
+     */
+    public static function createWork(string $code, string $kind, ?string $cover, ?string $video, array $gallery, Carbon $published, string $caption = ''): Work
+    {
+        $caption = trim($caption);
+        $titles = [];
+        foreach (array_keys(config('app.locales')) as $locale) {
+            $titles[$locale] = $caption !== ''
+                ? static::title($caption, $published)
+                : __('admin.instagram.titles.'.$kind, [], $locale).' · '.$published->locale($locale)->translatedFormat('F Y');
+        }
         $excerpt = $caption ? Str::limit(preg_replace('/\s+/', ' ', $caption), 220) : null;
 
         $work = Work::create([
-            'title' => ['hy' => $title, 'ru' => $title, 'en' => $title],
+            'title' => $titles,
             'excerpt' => $excerpt ? ['hy' => $excerpt, 'ru' => $excerpt, 'en' => $excerpt] : null,
             'description' => $caption ? ['hy' => $caption, 'ru' => $caption, 'en' => $caption] : null,
-            'category' => $type === 'VIDEO' ? YouTube::guessCategory($caption) : 'photo',
-            'cover' => $type === 'CAROUSEL_ALBUM' ? null : $cover,
+            'category' => $kind === 'video' ? ($caption ? static::videoCategory($caption) : 'reels') : 'photo',
+            'cover' => $kind === 'carousel' && collect($gallery)->contains('type', 'image') ? null : $cover,
             'video_url' => $video,
-            'instagram_id' => $post['id'],
+            'instagram_id' => $code,
             'year' => $published->year,
             'is_published' => true,
             'published_at' => $published,
         ]);
 
-        foreach ($gallery as $i => $media) {
-            $work->media()->create($media + ['sort_order' => $i]);
+        foreach (array_values($gallery) as $i => $media) {
+            $work->media()->create(['type' => $media['type'], 'path' => $media['path'], 'sort_order' => $i]);
         }
 
         return $work;
+    }
+
+    protected static function videoCategory(string $caption): string
+    {
+        $category = YouTube::guessCategory($caption);
+
+        return $category === 'film' ? 'reels' : $category;
     }
 
     /** Первая строка подписи без хэштегов, иначе дата. */

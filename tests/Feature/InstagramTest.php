@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Admin\Works;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Work;
@@ -9,6 +10,7 @@ use App\Support\Instagram;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class InstagramTest extends TestCase
@@ -37,14 +39,14 @@ class InstagramTest extends TestCase
 
         $this->assertSame(['added' => 3, 'more' => false], Instagram::importBatch(fromStart: true));
 
-        $photo = Work::where('instagram_id', '1')->first();
+        $photo = Work::where('instagram_id', 'A1')->first();
         $this->assertSame('Portrait session', $photo->title);
         $this->assertSame('photo', $photo->category);
         $this->assertNotNull($photo->cover);
 
-        $this->assertCount(2, Work::where('instagram_id', '2')->first()->media);
+        $this->assertCount(2, Work::where('instagram_id', 'A2')->first()->media);
 
-        $video = Work::where('instagram_id', '3')->first();
+        $video = Work::where('instagram_id', 'ABC')->first();
         $this->assertSame('music_video', $video->category);
         $this->assertStringEndsWith('.mp4', $video->video_url);
 
@@ -64,5 +66,34 @@ class InstagramTest extends TestCase
         Setting::put('instagram_token', 'IGAAtesttokentesttokentest');
         Setting::put('instagram_username', 'not_filmmaker');
         $this->actingAs($admin)->get('/admin/settings')->assertOk()->assertSee('@not_filmmaker');
+    }
+
+    public function test_archive_post_creates_work_once(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $items = [['type' => 'image', 'path' => 'gallery/a.jpg'], ['type' => 'image', 'path' => 'gallery/b.jpg']];
+
+        Livewire::actingAs($admin)->test(Works::class)
+            ->call('importArchivePost', 'CkDNW34skvT', 'carousel', $items, null, 1666515006000)
+            ->assertReturned(true)
+            ->call('importArchivePost', 'CkDNW34skvT', 'carousel', $items, null, 1666515006000)
+            ->assertReturned(false)
+            ->call('instagramCodes')
+            ->assertReturned(['CkDNW34skvT']);
+
+        $work = Work::where('instagram_id', 'CkDNW34skvT')->first();
+        $this->assertSame('Фотосерия · октябрь 2022', $work->getTranslation('title', 'ru'));
+        $this->assertSame(2022, $work->year);
+        $this->assertCount(2, $work->media);
+    }
+
+    public function test_archive_post_rejects_foreign_urls(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        Livewire::actingAs($admin)->test(Works::class)
+            ->call('importArchivePost', 'Abcdefghijk', 'photo', [['type' => 'image', 'path' => 'https://evil.test/x.jpg']], null, 1666515006000)
+            ->assertStatus(422);
+        $this->assertSame(0, Work::count());
     }
 }

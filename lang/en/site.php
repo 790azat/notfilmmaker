@@ -77,6 +77,7 @@ return [
         'commercial' => 'Commercial',
         'documentary' => 'Documentary',
         'photo' => 'Photography',
+        'reels' => 'Reels',
         'backstage' => 'Behind the scenes',
     ],
     'about' => [

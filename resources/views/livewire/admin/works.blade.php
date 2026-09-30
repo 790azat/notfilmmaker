@@ -4,6 +4,41 @@
         <a href="{{ route('admin.works.create') }}" wire:navigate class="btn-primary !py-2.5"><x-icon name="plus" class="size-4" /> {{ __('admin.works.add') }}</a>
     </div>
 
+    <div wire:ignore x-data="instagramArchive" data-empty="{{ __('admin.instagram.archive.empty') }}" class="card space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="font-medium">{{ __('admin.instagram.archive.title') }}</h2>
+                <p class="mt-1 max-w-2xl text-sm text-ash">{{ __('admin.instagram.archive.intro') }}</p>
+            </div>
+            <button type="button" x-on:click="pick" x-bind:disabled="state === 'reading' || state === 'uploading'" class="btn-ghost shrink-0 !py-2.5">
+                <x-icon name="upload" class="size-4" /> {{ __('admin.instagram.archive.pick') }}
+            </button>
+            <input x-ref="zip" type="file" accept=".zip,application/zip" class="hidden" x-on:change="run($event.target.files[0])">
+        </div>
+        <template x-if="state === 'reading'">
+            <p class="text-sm text-ash">{{ __('admin.instagram.archive.reading') }}</p>
+        </template>
+        <template x-if="state === 'uploading' || state === 'done'">
+            <div class="space-y-2">
+                <div class="h-1.5 overflow-hidden rounded-full bg-graphite">
+                    <div class="h-full bg-amber transition-all" x-bind:style="`width: ${total ? Math.round(done / total * 100) : 100}%`"></div>
+                </div>
+                <p class="text-sm">
+                    <span x-show="state === 'uploading'">{{ __('admin.instagram.archive.progress') }}: <b x-text="done"></b> / <span x-text="total"></span></span>
+                    <span x-show="state === 'done'" class="text-amber">{{ __('admin.instagram.archive.done') }} <b x-text="added"></b></span>
+                    <span x-show="skipped" class="text-smoke"> · <span x-text="skipped"></span> {{ __('admin.instagram.archive.skipped') }}</span>
+                </p>
+                <p x-show="state === 'uploading'" class="text-xs text-smoke">{{ __('admin.instagram.archive.keep_open') }}</p>
+                <template x-if="errors.length">
+                    <div class="text-xs text-rec">
+                        <p>{{ __('admin.instagram.archive.failed') }}:</p>
+                        <template x-for="e in errors"><p x-text="e"></p></template>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </div>
+
     <div class="flex flex-col gap-3 sm:flex-row">
         <input type="search" wire:model.live.debounce.300ms="search" placeholder="{{ __('admin.search') }}" class="input sm:max-w-xs">
         <select wire:model.live="category" class="input sm:max-w-xs">

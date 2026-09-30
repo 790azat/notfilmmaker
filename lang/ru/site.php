@@ -77,6 +77,7 @@ return [
         'commercial' => 'Реклама',
         'documentary' => 'Документальное',
         'photo' => 'Фотография',
+        'reels' => 'Рилсы',
         'backstage' => 'Бэкстейдж',
     ],
     'about' => [
