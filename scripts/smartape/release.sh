@@ -51,7 +51,7 @@ elif [ -f "$SHARED/.env.new" ]; then
   chmod 600 "$SHARED/.env"
 fi
 rm -f "$SHARED/.env.new"
-echo "База: $(grep -E '^DB_(HOST|DATABASE)=' "$SHARED/.env" | tr '\n' ' ')пароль $(grep '^DB_PASSWORD=' "$SHARED/.env" | sed "s/^DB_PASSWORD='\(.*\)'$/\1/" | tr -d '\n' | wc -c) символов"
+echo "База: $(grep -E '^DB_(HOST|DATABASE)=' "$SHARED/.env" | tr '\n' ' ')пользователь $(grep '^DB_USERNAME=' "$SHARED/.env" | cut -d= -f2- | tr -d '\n' | wc -c) символов (отпечаток $(grep '^DB_USERNAME=' "$SHARED/.env" | cut -d= -f2- | tr -d '\n' | sha256sum | cut -c1-8)), пароль $(grep '^DB_PASSWORD=' "$SHARED/.env" | sed "s/^DB_PASSWORD='\(.*\)'$/\1/" | tr -d '\n' | wc -c) символов"
 
 rm -rf "$RELEASE/storage"
 ln -s "$SHARED/storage" "$RELEASE/storage"
