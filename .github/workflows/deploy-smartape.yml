@@ -67,7 +67,7 @@ jobs:
           DB_DATABASE: ${{ secrets.SMARTAPE_DB_DATABASE }}
           DB_USERNAME: ${{ secrets.SMARTAPE_DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.SMARTAPE_DB_PASSWORD }}
-          DB_HOST: ${{ vars.SMARTAPE_DB_HOST || 'localhost' }}
+          DB_HOST: ${{ vars.SMARTAPE_DB_HOST || '188.127.239.143' }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
