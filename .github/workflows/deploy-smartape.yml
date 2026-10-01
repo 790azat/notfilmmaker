@@ -71,7 +71,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          # .env создаётся на сервере только один раз; дальше его правят там же (notfilmmaker/shared/.env).
+          # .env создаётся на сервере один раз; потом из секретов обновляются только DB_* и TELEGRAM_BOT_TOKEN.
           umask 077
           sed -e "s|^APP_URL=.*|APP_URL=https://$DOMAIN|" \
               -e "s|^MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS=\"noreply@$DOMAIN\"|" \
@@ -84,7 +84,7 @@ jobs:
             echo "TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN"
             echo "CRON_SECRET=$CRON_SECRET"
           } >> /tmp/env
-          remote 'mkdir -p notfilmmaker/shared notfilmmaker/releases && [ -f notfilmmaker/shared/.env ] || cat > notfilmmaker/shared/.env.new' < /tmp/env
+          remote 'mkdir -p notfilmmaker/shared notfilmmaker/releases && umask 077 && cat > notfilmmaker/shared/.env.new' < /tmp/env
           rm /tmp/env
 
       - name: Upload and switch

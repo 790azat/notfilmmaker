@@ -34,14 +34,24 @@ mkdir -p "$SHARED/storage/app/public" "$SHARED/storage/app/private" "$SHARED/sto
   "$SHARED/storage/framework/sessions" "$SHARED/storage/framework/views" "$SHARED/storage/logs"
 
 # Первая выкладка: .env из шаблона, который прислал GitHub Actions, и новый APP_KEY.
+# Дальше доступ к базе (DB_*) и токен бота каждый раз обновляются из секретов GitHub, остальное правится на сервере.
+FIRST=0
 if [ ! -f "$SHARED/.env" ]; then
   mv "$SHARED/.env.new" "$SHARED/.env"
   chmod 600 "$SHARED/.env"
   FIRST=1
-else
-  FIRST=0
+elif [ -f "$SHARED/.env.new" ]; then
+  for key in DB_HOST DB_DATABASE DB_USERNAME DB_PASSWORD TELEGRAM_BOT_TOKEN; do
+    line="$(grep "^$key=" "$SHARED/.env.new" || true)"
+    [ -n "$line" ] && [ "$line" != "$key=" ] || continue
+    grep -v "^$key=" "$SHARED/.env" > "$SHARED/.env.tmp" || true
+    printf '%s\n' "$line" >> "$SHARED/.env.tmp"
+    mv "$SHARED/.env.tmp" "$SHARED/.env"
+  done
+  chmod 600 "$SHARED/.env"
 fi
 rm -f "$SHARED/.env.new"
+echo "База: $(grep -E '^DB_(HOST|DATABASE)=' "$SHARED/.env" | tr '\n' ' ')пароль $(grep '^DB_PASSWORD=' "$SHARED/.env" | sed "s/^DB_PASSWORD='\(.*\)'$/\1/" | tr -d '\n' | wc -c) символов"
 
 rm -rf "$RELEASE/storage"
 ln -s "$SHARED/storage" "$RELEASE/storage"
@@ -57,8 +67,9 @@ if ! grep -q '^CRON_SECRET=.\+' .env; then
   echo "CRON_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" >> "$SHARED/.env"
 fi
 "$PHP" artisan migrate --force
-if [ "$FIRST" = 1 ]; then
+if [ ! -f "$SHARED/.seeded" ]; then
   "$PHP" artisan db:seed --force
+  touch "$SHARED/.seeded"
 fi
 rm -f public/storage
 ln -s "$SHARED/storage/app/public" public/storage
