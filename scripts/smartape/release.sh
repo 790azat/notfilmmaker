@@ -66,6 +66,21 @@ if ! grep -q '^CRON_SECRET=.\+' .env; then
   sed -i '/^CRON_SECRET=/d' "$SHARED/.env"
   echo "CRON_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" >> "$SHARED/.env"
 fi
+# Доступ к базе: подбираем имена с приставкой логина хостинга, если без неё не пускает.
+if fixed="$("$PHP" "$RELEASE/scripts/smartape/db-check.php" "$SHARED/.env")"; then
+  while IFS= read -r line; do
+    key="${line%%=*}"
+    if ! grep -qxF "$line" "$SHARED/.env"; then
+      echo "Исправляю $key в .env"
+      grep -v "^$key=" "$SHARED/.env" > "$SHARED/.env.tmp" || true
+      printf '%s\n' "$line" >> "$SHARED/.env.tmp"
+      mv "$SHARED/.env.tmp" "$SHARED/.env"
+      chmod 600 "$SHARED/.env"
+    fi
+  done <<< "$fixed"
+else
+  echo "MySQL не пускает ни с одним вариантом имени: проверьте пользователя и пароль базы в ISPmanager." >&2
+fi
 "$PHP" artisan migrate --force
 if [ ! -f "$SHARED/.seeded" ]; then
   "$PHP" artisan db:seed --force
