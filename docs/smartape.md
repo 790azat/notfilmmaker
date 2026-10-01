@@ -50,7 +50,7 @@
 | --- | --- |
 | `SMARTAPE_SSH_KEY` | закрытый SSH-ключ (или `SMARTAPE_SSH_PASSWORD` — пароль SSH) |
 | `SMARTAPE_DB_DATABASE`, `SMARTAPE_DB_USERNAME`, `SMARTAPE_DB_PASSWORD` | база MySQL из шага 1 |
-| `CRON_SECRET` | любая длинная случайная строка (та же, что в cron) |
+| `CRON_SECRET` | необязательно: без него ключ создаётся на сервере в `shared/.env` |
 | `TELEGRAM_BOT_TOKEN` | токен бота для чата (как на Vercel), необязательно |
 | `SOURCE_DATABASE_URL` | `DATABASE_URL` из Vercel — только для переноса данных |
 

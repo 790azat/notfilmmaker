@@ -51,6 +51,11 @@ cd "$RELEASE"
 if [ "$FIRST" = 1 ] || ! grep -q '^APP_KEY=base64:' .env; then
   "$PHP" artisan key:generate --force
 fi
+# Ключ для ежедневного крона (/cron/sync), если его не задали в секретах GitHub.
+if ! grep -q '^CRON_SECRET=.\+' .env; then
+  sed -i '/^CRON_SECRET=/d' "$SHARED/.env"
+  echo "CRON_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" >> "$SHARED/.env"
+fi
 "$PHP" artisan migrate --force
 if [ "$FIRST" = 1 ]; then
   "$PHP" artisan db:seed --force
