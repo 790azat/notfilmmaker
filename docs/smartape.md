@@ -41,7 +41,7 @@
 | --- | --- |
 | `SMARTAPE_HOST` | адрес SSH-сервера из письма SmartApe |
 | `SMARTAPE_USER` | логин пользователя хостинга |
-| `SMARTAPE_PORT` | необязательно, по умолчанию 22 |
+| `SMARTAPE_PORT` | необязательно, по умолчанию 22122 (SSH на shared-33.smartape.net) |
 | `SMARTAPE_PHP_BIN` | необязательно: путь к PHP 8.4, если скрипт не нашёл его сам (например `/opt/php84/bin/php`) |
 
 **Secrets**

@@ -18,9 +18,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST || secrets.SMARTAPE_HOST }}
+      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST || secrets.SMARTAPE_HOST || 'shared-33.smartape.net' }}
       SMARTAPE_USER: ${{ vars.SMARTAPE_USER || secrets.SMARTAPE_USER }}
-      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT || secrets.SMARTAPE_PORT }}
+      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT || secrets.SMARTAPE_PORT || '22122' }}
       DOMAIN: ${{ vars.SMARTAPE_DOMAIN || 'notfilmmaker.com' }}
 
     steps:
