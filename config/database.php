@@ -99,6 +99,17 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        // Старая база (Neon на Vercel), из которой команда site:pull переносит данные при переезде.
+        'source' => [
+            'driver' => 'pgsql',
+            'url' => env('SOURCE_DATABASE_URL'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'require',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

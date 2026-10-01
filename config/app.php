@@ -86,6 +86,9 @@ return [
 
     'auto_migrate' => (bool) env('AUTO_MIGRATE', false),
 
+    // Редирект со старого домена на APP_URL после переезда (см. RedirectToAppUrl).
+    'redirect_to_app_url' => (bool) env('REDIRECT_TO_APP_URL', false),
+
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
     /*
