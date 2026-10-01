@@ -17,6 +17,7 @@ Route::get('/about', Livewire\About::class)->name('about');
 Route::get('/contact', Livewire\Contact::class)->name('contact');
 Route::get('/lang/{locale}', LocaleController::class)->name('locale');
 Route::get('/sitemap.xml', SitemapController::class);
+Route::get('/robots.txt', [SitemapController::class, 'robots']);
 Route::get('/cron/youtube', [CronController::class, 'youtube']);
 Route::get('/cron/sync', [CronController::class, 'youtube']);
 Route::get('/cron/instagram-archive', [CronController::class, 'archive']);
