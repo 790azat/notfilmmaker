@@ -52,7 +52,7 @@ fi
 chmod +x ~/bin/remote
 echo "$HOME/bin" >> "$GITHUB_PATH"
 
-if ! ~/bin/remote 'echo connected' ; then
+if ! SSH_DEBUG=1 ~/bin/remote -v 'echo connected' 2> >(grep -E --line-buffered "Authentications that can continue|Authenticated|Permission denied|Connection closed|Remote protocol|banner|kex_exchange|Server accepts" >&2); then
   echo "::error::SSH-сервер отвечает, но вход не удался: проверьте SMARTAPE_USER и пароль или ключ."
   exit 1
 fi
