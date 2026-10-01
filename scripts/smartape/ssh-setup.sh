@@ -6,9 +6,18 @@ set -euo pipefail
 PORT="${SMARTAPE_PORT:-22}"
 mkdir -p ~/.ssh ~/bin
 chmod 700 ~/.ssh
-ssh-keyscan -p "$PORT" -H "$SMARTAPE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+# Диагностика: имя хоста резолвится и порт SSH открыт?
+if ! getent hosts "$SMARTAPE_HOST" >/dev/null; then
+  echo "::error::SMARTAPE_HOST не резолвится в IP. Укажите адрес SSH-сервера из письма SmartApe (не домен сайта, пока DNS не обновился)."
+  exit 1
+fi
+if ! timeout 15 bash -c "</dev/tcp/$SMARTAPE_HOST/$PORT" 2>/dev/null; then
+  echo "::error::Порт $PORT на SMARTAPE_HOST не отвечает. Проверьте, что SSH включён, и порт (переменная SMARTAPE_PORT)."
+  exit 1
+fi
+ssh-keyscan -T 15 -p "$PORT" -H "$SMARTAPE_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-SSH=(ssh -p "$PORT" -o BatchMode=yes)
+SSH=(ssh -p "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 if [ -n "${SMARTAPE_SSH_KEY:-}" ]; then
   printf '%s\n' "$SMARTAPE_SSH_KEY" > ~/.ssh/smartape
   chmod 600 ~/.ssh/smartape
@@ -17,7 +26,7 @@ elif [ -n "${SMARTAPE_SSH_PASSWORD:-}" ]; then
   sudo apt-get install -y -qq sshpass >/dev/null
   printf '%s' "$SMARTAPE_SSH_PASSWORD" > ~/.ssh/smartape-pass
   chmod 600 ~/.ssh/smartape-pass
-  SSH=(sshpass -f "$HOME/.ssh/smartape-pass" ssh -p "$PORT" -o PubkeyAuthentication=no)
+  SSH=(sshpass -f "$HOME/.ssh/smartape-pass" ssh -p "$PORT" -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 else
   echo "Нужен секрет SMARTAPE_SSH_KEY или SMARTAPE_SSH_PASSWORD" >&2
   exit 1
@@ -31,3 +40,8 @@ fi
 } > ~/bin/remote
 chmod +x ~/bin/remote
 echo "$HOME/bin" >> "$GITHUB_PATH"
+
+if ! ~/bin/remote 'echo connected' ; then
+  echo "::error::SSH-сервер отвечает, но вход не удался: проверьте SMARTAPE_USER и пароль или ключ."
+  exit 1
+fi
