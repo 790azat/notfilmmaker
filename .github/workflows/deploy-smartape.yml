@@ -16,29 +16,38 @@ permissions:
 
 jobs:
   deploy:
-    if: vars.SMARTAPE_HOST != ''
     runs-on: ubuntu-latest
     env:
-      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST }}
-      SMARTAPE_USER: ${{ vars.SMARTAPE_USER }}
-      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT }}
+      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST || secrets.SMARTAPE_HOST }}
+      SMARTAPE_USER: ${{ vars.SMARTAPE_USER || secrets.SMARTAPE_USER }}
+      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT || secrets.SMARTAPE_PORT }}
       DOMAIN: ${{ vars.SMARTAPE_DOMAIN || 'notfilmmaker.com' }}
 
     steps:
+      - name: Check settings
+        id: cfg
+        run: |
+          if [ -n "$SMARTAPE_HOST" ] && [ -n "$SMARTAPE_USER" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "::warning::SMARTAPE_HOST и SMARTAPE_USER не заданы (Settings → Secrets and variables → Actions)"
+          [ "$GITHUB_EVENT_NAME" = push ] || exit 1
       - uses: actions/checkout@v4
+        if: steps.cfg.outputs.ok == 'true'
 
       - uses: shivammathur/setup-php@v2
+        if: steps.cfg.outputs.ok == 'true'
         with:
           php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pdo, pdo_mysql, gd, intl
           coverage: none
 
       - uses: actions/setup-node@v4
+        if: steps.cfg.outputs.ok == 'true'
         with:
           node-version: 22
           cache: npm
 
       - name: Build
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
           npm ci && npm run build
@@ -46,12 +55,14 @@ jobs:
           tar czf /tmp/release.tgz --exclude=./.github .
 
       - name: SSH
+        if: steps.cfg.outputs.ok == 'true'
         env:
           SMARTAPE_SSH_KEY: ${{ secrets.SMARTAPE_SSH_KEY }}
           SMARTAPE_SSH_PASSWORD: ${{ secrets.SMARTAPE_SSH_PASSWORD }}
         run: bash scripts/smartape/ssh-setup.sh
 
       - name: Settings for the first deploy
+        if: steps.cfg.outputs.ok == 'true'
         env:
           DB_DATABASE: ${{ secrets.SMARTAPE_DB_DATABASE }}
           DB_USERNAME: ${{ secrets.SMARTAPE_DB_USERNAME }}
@@ -77,12 +88,14 @@ jobs:
           rm /tmp/env
 
       - name: Upload and switch
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           REL="notfilmmaker/releases/$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
           remote "mkdir -p $REL && tar xzf - -C $REL" < /tmp/release.tgz
           remote "PHP_BIN='${{ vars.SMARTAPE_PHP_BIN }}' SMARTAPE_WEBROOT='${{ vars.SMARTAPE_WEBROOT }}' bash \$HOME/$REL/scripts/smartape/release.sh \$HOME/$REL $DOMAIN"
 
       - name: Check the site
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           sleep 5
           curl -fsS -o /dev/null -w "https://$DOMAIN/ -> %{http_code}\n" "https://$DOMAIN/" \

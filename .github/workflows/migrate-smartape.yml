@@ -15,23 +15,32 @@ permissions:
 
 jobs:
   migrate:
-    if: inputs.confirm == 'ПЕРЕНЕСТИ' && vars.SMARTAPE_HOST != ''
+    if: inputs.confirm == 'ПЕРЕНЕСТИ'
     runs-on: ubuntu-latest
     env:
-      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST }}
-      SMARTAPE_USER: ${{ vars.SMARTAPE_USER }}
-      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT }}
+      SMARTAPE_HOST: ${{ vars.SMARTAPE_HOST || secrets.SMARTAPE_HOST }}
+      SMARTAPE_USER: ${{ vars.SMARTAPE_USER || secrets.SMARTAPE_USER }}
+      SMARTAPE_PORT: ${{ vars.SMARTAPE_PORT || secrets.SMARTAPE_PORT }}
 
     steps:
+      - name: Check settings
+        id: cfg
+        run: |
+          if [ -n "$SMARTAPE_HOST" ] && [ -n "$SMARTAPE_USER" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "::warning::SMARTAPE_HOST и SMARTAPE_USER не заданы (Settings → Secrets and variables → Actions)"
+          [ "$GITHUB_EVENT_NAME" = push ] || exit 1
       - uses: actions/checkout@v4
+        if: steps.cfg.outputs.ok == 'true'
 
       - uses: shivammathur/setup-php@v2
+        if: steps.cfg.outputs.ok == 'true'
         with:
           php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pdo, pdo_pgsql
           coverage: none
 
       - name: Export from the old database
+        if: steps.cfg.outputs.ok == 'true'
         env:
           SOURCE_DATABASE_URL: ${{ secrets.SOURCE_DATABASE_URL }}
         run: |
@@ -42,12 +51,14 @@ jobs:
           php artisan site:export /tmp/export.json --connection=source
 
       - name: SSH
+        if: steps.cfg.outputs.ok == 'true'
         env:
           SMARTAPE_SSH_KEY: ${{ secrets.SMARTAPE_SSH_KEY }}
           SMARTAPE_SSH_PASSWORD: ${{ secrets.SMARTAPE_SSH_PASSWORD }}
         run: bash scripts/smartape/ssh-setup.sh
 
       - name: Import on SmartApe
+        if: steps.cfg.outputs.ok == 'true'
         run: |
           remote 'umask 077 && cat > notfilmmaker/shared/export.json' < /tmp/export.json
           rm /tmp/export.json
