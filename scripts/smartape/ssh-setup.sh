@@ -19,10 +19,6 @@ if ! getent hosts "$SMARTAPE_HOST" >/dev/null; then
   exit 1
 fi
 if ! timeout 15 bash -c "</dev/tcp/$SMARTAPE_HOST/$PORT" 2>/dev/null; then
-  echo "Отпечаток адреса: $(printf '%s' "$HOST" | sha256sum | cut -c1-12)"
-  for p in 21 22 80 443 1500 2222 22022; do
-    timeout 5 bash -c "</dev/tcp/$SMARTAPE_HOST/$p" 2>/dev/null && echo "порт $p открыт" || echo "порт $p закрыт"
-  done
   echo "::error::Порт $PORT на SMARTAPE_HOST не отвечает. Проверьте, что SSH включён, и порт (переменная SMARTAPE_PORT)."
   exit 1
 fi
