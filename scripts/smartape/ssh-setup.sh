@@ -4,10 +4,17 @@
 set -euo pipefail
 : "${SMARTAPE_HOST:?Задайте переменную SMARTAPE_HOST}" "${SMARTAPE_USER:?Задайте переменную SMARTAPE_USER}"
 PORT="${SMARTAPE_PORT:-22}"
+# Адрес могли вставить как ssh://user@host:port или с пробелами: оставляем только имя хоста.
+HOST="$(printf '%s' "$SMARTAPE_HOST" | tr -d '[:space:]')"
+HOST="${HOST#*://}"; HOST="${HOST##*@}"; HOST="${HOST%%/*}"
+if [[ "$HOST" == *:* ]]; then PORT="${HOST##*:}"; HOST="${HOST%%:*}"; fi
+SMARTAPE_HOST="$HOST"
+SMARTAPE_USER="$(printf '%s' "$SMARTAPE_USER" | tr -d '[:space:]')"
 mkdir -p ~/.ssh ~/bin
 chmod 700 ~/.ssh
 # Диагностика: имя хоста резолвится и порт SSH открыт?
 if ! getent hosts "$SMARTAPE_HOST" >/dev/null; then
+  echo "Длина адреса: ${#HOST}, в нём точек: $(tr -cd . <<<"$HOST" | wc -c)"
   echo "::error::SMARTAPE_HOST не резолвится в IP. Укажите адрес SSH-сервера из письма SmartApe (не домен сайта, пока DNS не обновился)."
   exit 1
 fi
