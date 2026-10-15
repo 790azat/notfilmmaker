@@ -11,7 +11,13 @@ class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         $locales = array_keys(config('app.locales'));
-        $locale = $request->session()->get('locale');
+        // ?lang=ru — ссылка на конкретный язык (для hreflang и переключателя), запоминаем выбор.
+        $locale = $request->query('lang');
+        if (is_string($locale) && in_array($locale, $locales, true)) {
+            $request->session()->put('locale', $locale);
+        } else {
+            $locale = $request->session()->get('locale');
+        }
 
         if (! in_array($locale, $locales, true)) {
             $locale = $request->getPreferredLanguage($locales) ?: config('app.locale');
