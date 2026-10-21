@@ -1,0 +1,27 @@
+name: Diagnose site
+
+on:
+  push:
+    branches: [claude/site-diagnose]
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq whois dnsutils >/dev/null
+      - name: DNS
+        run: |
+          for t in NS A AAAA CNAME SOA; do echo "== $t"; dig +short notfilmmaker.com $t @8.8.8.8; done
+          echo "== www"; dig +short www.notfilmmaker.com @8.8.8.8
+          echo "== trace"; dig +trace notfilmmaker.com | tail -25
+      - name: WHOIS
+        run: whois notfilmmaker.com | grep -iE "registrar|expir|status|name server|creation|updated" | head -30
+      - name: HTTP
+        run: |
+          for u in http://notfilmmaker.com/ https://notfilmmaker.com/ https://www.notfilmmaker.com/; do
+            echo "=== $u"; curl -sS -m 20 -o /tmp/body -D - "$u" | head -20 || true; head -c 1500 /tmp/body 2>/dev/null; echo
+          done
+          echo "=== direct IP"; curl -sS -m 20 -k -D - --resolve notfilmmaker.com:443:188.127.239.141 https://notfilmmaker.com/ -o /tmp/b2 | head -15 || true; head -c 1500 /tmp/b2; echo
+      - name: TLS
+        run: echo | openssl s_client -connect notfilmmaker.com:443 -servername notfilmmaker.com 2>/dev/null | openssl x509 -noout -subject -issuer -dates || true
