@@ -18,10 +18,16 @@ jobs:
       - name: WHOIS
         run: whois notfilmmaker.com | grep -iE "registrar|expir|status|name server|creation|updated" | head -30
       - name: HTTP
+        continue-on-error: true
         run: |
+          set +e
           for u in http://notfilmmaker.com/ https://notfilmmaker.com/ https://www.notfilmmaker.com/; do
             echo "=== $u"; curl -sS -m 20 -o /tmp/body -D - "$u" | head -20 || true; head -c 1500 /tmp/body 2>/dev/null; echo
           done
-          echo "=== direct IP"; curl -sS -m 20 -k -D - --resolve notfilmmaker.com:443:188.127.239.141 https://notfilmmaker.com/ -o /tmp/b2 | head -15 || true; head -c 1500 /tmp/b2; echo
+          echo "=== direct IP"; curl -sS -m 20 -k -D - --resolve notfilmmaker.com:443:188.127.239.141 --resolve notfilmmaker.com:80:188.127.239.141 https://notfilmmaker.com/ -o /tmp/b2 | head -15 || true; head -c 1500 /tmp/b2; echo
+      - name: Hosting direct
+        continue-on-error: true
+        run: |
+          for ip in 188.127.239.141 188.127.239.183; do echo "=== $ip"; curl -sS -m 20 -k -D - -o /tmp/b3 --resolve notfilmmaker.com:443:$ip https://notfilmmaker.com/ | head -12; head -c 800 /tmp/b3; echo; done
       - name: TLS
         run: echo | openssl s_client -connect notfilmmaker.com:443 -servername notfilmmaker.com 2>/dev/null | openssl x509 -noout -subject -issuer -dates || true
