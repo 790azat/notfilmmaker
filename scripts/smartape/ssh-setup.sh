@@ -24,7 +24,10 @@ if ! timeout 15 bash -c "</dev/tcp/$SMARTAPE_HOST/$PORT" 2>/dev/null; then
 fi
 ssh-keyscan -T 15 -p "$PORT" -H "$SMARTAPE_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-SSH=(ssh -p "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
+# Все команды remote идут через одно соединение: SmartApe сбрасывает частые новые подключения
+# (kex_exchange_identification: Connection reset by peer).
+MUX=(-o ControlMaster=auto -o "ControlPath=$HOME/.ssh/cm-%C" -o ControlPersist=15m)
+SSH=(ssh -p "$PORT" "${MUX[@]}" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 if [ -n "${SMARTAPE_SSH_KEY:-}" ]; then
   printf '%s\n' "$SMARTAPE_SSH_KEY" > ~/.ssh/smartape
   chmod 600 ~/.ssh/smartape
@@ -33,7 +36,7 @@ elif [ -n "${SMARTAPE_SSH_PASSWORD:-}" ]; then
   sudo apt-get install -y -qq sshpass >/dev/null
   printf '%s' "$SMARTAPE_SSH_PASSWORD" > ~/.ssh/smartape-pass
   chmod 600 ~/.ssh/smartape-pass
-  SSH=(sshpass -f "$HOME/.ssh/smartape-pass" ssh -p "$PORT" -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
+  SSH=(sshpass -f "$HOME/.ssh/smartape-pass" ssh -p "$PORT" "${MUX[@]}" -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 else
   echo "Нужен секрет SMARTAPE_SSH_KEY или SMARTAPE_SSH_PASSWORD" >&2
   exit 1
@@ -48,7 +51,13 @@ fi
 chmod +x ~/bin/remote
 echo "$HOME/bin" >> "$GITHUB_PATH"
 
-if ! SSH_DEBUG=1 ~/bin/remote -v 'echo connected' 2> >(grep -E --line-buffered "Authentications that can continue|Authenticated|Permission denied|Connection closed|Remote protocol|banner|kex_exchange|Server accepts" >&2); then
-  echo "::error::SSH-сервер отвечает, но вход не удался: проверьте SMARTAPE_USER и пароль или ключ."
-  exit 1
-fi
+# Первое подключение открывает общее соединение. Сервер может сбросить его сразу после
+# проверки порта и keyscan, поэтому пробуем несколько раз с паузой.
+for attempt in 1 2 3 4; do
+  if ~/bin/remote -v 'echo connected' 2> >(grep -E --line-buffered "Authentications that can continue|Authenticated|Permission denied|Connection closed|Connection reset|Remote protocol|banner|kex_exchange|Server accepts" >&2); then
+    exit 0
+  fi
+  [ "$attempt" -lt 4 ] && sleep $((attempt * 15))
+done
+echo "::error::SSH-сервер отвечает, но вход не удался: проверьте SMARTAPE_USER и пароль или ключ."
+exit 1
