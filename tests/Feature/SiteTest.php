@@ -31,6 +31,14 @@ class SiteTest extends TestCase
         $this->assertSame('abcdefghijk', $work->youtube_id);
     }
 
+    public function test_site_opens_in_english_by_default(): void
+    {
+        $this->get('/', ['Accept-Language' => 'ru-RU,ru;q=0.9'])->assertOk()->assertSee('<html lang="en">', false);
+
+        $this->get('/lang/ru')->assertRedirect();
+        $this->get('/')->assertSee('<html lang="ru">', false);
+    }
+
     public function test_first_user_becomes_admin_and_registration_closes(): void
     {
         // миграции создают админа по умолчанию, здесь проверяем пустую базу

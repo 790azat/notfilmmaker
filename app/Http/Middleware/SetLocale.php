@@ -13,12 +13,9 @@ class SetLocale
         $locales = array_keys(config('app.locales'));
         $locale = $request->session()->get('locale');
 
+        // Язык не выбран — открываем сайт на английском, язык браузера не учитываем.
         if (! in_array($locale, $locales, true)) {
-            $locale = $request->getPreferredLanguage($locales) ?: config('app.locale');
-            // Браузер без армянского/русского/английского — показываем армянский.
-            if (! in_array($locale, $locales, true)) {
-                $locale = config('app.locale');
-            }
+            $locale = config('app.locale');
         }
 
         app()->setLocale($locale);

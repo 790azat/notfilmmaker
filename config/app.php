@@ -78,7 +78,8 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'hy'),
+    // Язык сайта по умолчанию. Не берём из APP_LOCALE: в .env на SmartApe там остался hy.
+    'locale' => 'en',
 
     'locales' => ['hy' => 'Հայ', 'ru' => 'Рус', 'en' => 'Eng'],
 
