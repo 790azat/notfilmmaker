@@ -23,4 +23,4 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Noto+Sans+Armenian:wdth,wght@62.5..100,300..700&family=Oswald:wght@300..700&display=swap" rel="stylesheet">
 <script>window.__portfolio = { blob: @json(\App\Support\Blob::enabled()) };</script>
-@vite(['resources/css/app.css', 'resources/js/app.js'])
+@vite($assets ?? ['resources/css/app.css', 'resources/js/app.js'])

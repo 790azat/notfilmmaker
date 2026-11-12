@@ -1,0 +1,390 @@
+/* 3D-стол (/alternative). Отдельно от Tailwind, чтобы страница грузила только своё. */
+:root {
+    --ink: #0b0b0c;
+    --coal: #121214;
+    --graphite: #1b1b1e;
+    --line: rgba(243, 239, 231, 0.14);
+    --bone: #f3efe7;
+    --ash: #a09b93;
+    --amber: #e0a84e;
+    --amber-deep: #b97f28;
+    --rec: #ef4444;
+    --sans: 'Inter', 'Noto Sans Armenian', ui-sans-serif, system-ui, sans-serif;
+    --display: 'Oswald', 'Noto Sans Armenian', ui-sans-serif, system-ui, sans-serif;
+    --glass: rgba(14, 13, 12, 0.82);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--ink);
+    color: var(--bone);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+}
+
+[hidden] { display: none !important; }
+
+a { color: inherit; }
+
+#desk-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    outline: none;
+}
+
+.desk-brand {
+    font-family: var(--display);
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 1.6rem;
+    margin: 0;
+    text-decoration: none;
+}
+.desk-brand--small { font-size: 0.95rem; letter-spacing: 0.28em; }
+
+.desk-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--bone);
+    font: 500 0.78rem/1 var(--sans);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 0.85em 1.3em;
+    border-radius: 999px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s;
+    white-space: nowrap;
+}
+.desk-btn:hover { border-color: var(--amber); color: var(--amber); }
+.desk-btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.desk-btn--primary { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+.desk-btn--primary:hover { background: var(--bone); border-color: var(--bone); color: var(--ink); }
+.desk-btn--ghost { background: rgba(11, 11, 12, 0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.desk-btn[disabled] { opacity: 0.5; pointer-events: none; }
+
+/* Загрузка */
+.desk-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(ellipse at center, #1a1612 0%, var(--ink) 70%);
+    transition: opacity 0.8s ease, visibility 0.8s;
+}
+.desk-loader.is-done { opacity: 0; visibility: hidden; }
+.desk-loader__inner { text-align: center; padding: 24px; display: grid; gap: 18px; justify-items: center; }
+.desk-loader__bar { width: min(260px, 70vw); height: 2px; background: var(--line); overflow: hidden; }
+.desk-loader__bar span { display: block; height: 100%; width: 0; background: var(--amber); transition: width 0.3s; }
+.desk-loader__text, .desk-loader__note { margin: 0; color: var(--ash); font-size: 0.8rem; letter-spacing: 0.08em; }
+.desk-loader__note { font-size: 0.7rem; opacity: 0.7; }
+
+/* Верхняя полоса */
+.desk-top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 24px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(11, 11, 12, 0.7), transparent);
+}
+.desk-top > * { pointer-events: auto; }
+.desk-top__right { display: flex; align-items: center; gap: 6px; }
+.desk-lang {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    color: var(--ash);
+    padding: 6px 8px;
+}
+.desk-lang.is-active, .desk-lang:hover { color: var(--amber); }
+
+/* Подсказки */
+.desk-tooltip {
+    position: fixed;
+    z-index: 15;
+    pointer-events: none;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: var(--glass);
+    border: 1px solid var(--line);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    transform: translate(-50%, calc(-100% - 14px));
+    white-space: nowrap;
+}
+.desk-hint {
+    position: fixed;
+    left: 50%;
+    bottom: 92px;
+    transform: translateX(-50%);
+    z-index: 10;
+    margin: 0;
+    color: var(--ash);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    pointer-events: none;
+    transition: opacity 0.6s;
+    text-align: center;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+}
+.desk-hint.is-hidden { opacity: 0; }
+
+/* Панель предметов внизу */
+.desk-dock {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 999px;
+    background: var(--glass);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width: calc(100vw - 32px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    transition: opacity 0.4s, transform 0.4s;
+}
+.desk-dock::-webkit-scrollbar { display: none; }
+.desk-dock.is-hidden { opacity: 0; pointer-events: none; transform: translate(-50%, 20px); }
+.desk-dock button {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 0;
+    background: transparent;
+    color: var(--bone);
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.desk-dock button:hover, .desk-dock button:focus-visible { background: rgba(224, 168, 78, 0.18); outline: none; }
+
+.desk-back { position: fixed; top: 74px; left: 24px; z-index: 20; }
+
+/* Мини-плеер «сейчас играет» */
+.desk-player {
+    position: fixed;
+    left: 24px;
+    bottom: 24px;
+    z-index: 21;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px 10px 10px;
+    border-radius: 16px;
+    background: var(--glass);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width: min(440px, calc(100vw - 48px));
+}
+.desk-player img { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex: none; background: var(--graphite); }
+.desk-player__meta { min-width: 0; flex: 1; }
+.desk-player__kicker { margin: 0; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--amber); }
+.desk-player__title { margin: 2px 0 0; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-player__actions { display: flex; gap: 2px; }
+.desk-icon-btn {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    border: 0;
+    background: transparent;
+    color: var(--bone);
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-decoration: none;
+}
+.desk-icon-btn:hover, .desk-icon-btn:focus-visible { background: rgba(224, 168, 78, 0.18); color: var(--amber); outline: none; }
+
+/* Боковая панель с содержимым предмета */
+.desk-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    width: min(440px, 100vw);
+    padding: 88px 32px 32px;
+    overflow-y: auto;
+    background: linear-gradient(to right, rgba(11, 11, 12, 0.78), rgba(11, 11, 12, 0.96) 30%);
+    border-left: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: panel-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes panel-in { from { transform: translateX(40px); opacity: 0; } }
+.desk-panel__close { position: absolute; top: 76px; right: 20px; }
+.desk-panel h2 {
+    font-family: var(--display);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 2.2rem;
+    line-height: 1.05;
+    margin: 0 0 8px;
+}
+.desk-panel p { color: var(--ash); line-height: 1.6; font-size: 0.95rem; }
+.desk-kicker { margin: 0 0 10px; font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber) !important; }
+.desk-panel .desk-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.desk-portrait { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 4px; filter: grayscale(0.2); margin-bottom: 20px; }
+.desk-list { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 4px; }
+.desk-list a {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    font-size: 1.05rem;
+}
+.desk-list a:hover { color: var(--amber); }
+.desk-list small { color: var(--ash); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.desk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 18px; }
+.desk-grid a { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 4px; background: var(--graphite); }
+.desk-grid img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.desk-grid a:hover img { transform: scale(1.05); }
+.desk-grid span {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 18px 10px 8px;
+    font-size: 0.75rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+/* Календарь и форма записи */
+.desk-cal { margin-top: 18px; }
+.desk-cal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.desk-cal__head strong { font-family: var(--display); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+.desk-cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.desk-cal__wd { text-align: center; font-size: 0.65rem; color: var(--ash); letter-spacing: 0.06em; padding: 4px 0; overflow: hidden; }
+.desk-cal__day {
+    aspect-ratio: 1;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: rgba(243, 239, 231, 0.04);
+    color: var(--bone);
+    font: 500 0.9rem var(--sans);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.desk-cal__day:hover { border-color: var(--amber); }
+.desk-cal__day.is-today { border-color: var(--line); }
+.desk-cal__day.is-selected { background: var(--amber); color: var(--ink); }
+.desk-cal__day[disabled] { opacity: 0.25; cursor: default; background: transparent; }
+
+.desk-form { display: grid; gap: 14px; margin-top: 22px; }
+.desk-form label { display: grid; gap: 6px; font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ash); }
+.desk-input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(243, 239, 231, 0.04);
+    color: var(--bone);
+    font: 400 1rem var(--sans);
+    padding: 12px 14px;
+    text-transform: none;
+    letter-spacing: normal;
+}
+.desk-input:focus { outline: none; border-color: var(--amber); }
+textarea.desk-input { resize: vertical; min-height: 84px; }
+.desk-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.desk-chips button { padding: 0.7em 1em; }
+.desk-chips button.is-active { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+.desk-msg { margin: 0; font-size: 0.85rem; }
+.desk-msg--error { color: var(--rec) !important; }
+.desk-success { text-align: center; padding: 30px 0; }
+.desk-success__icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 999px; background: var(--amber); color: var(--ink); font-size: 1.6rem; }
+
+/* Видео на весь экран */
+.desk-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.92);
+    padding: 70px 16px 24px;
+}
+.desk-screen video, .desk-screen iframe { max-width: 100%; max-height: 100%; width: auto; height: 100%; aspect-ratio: auto; border: 0; background: #000; }
+.desk-screen iframe { width: min(100%, 1100px); height: auto; aspect-ratio: 16 / 9; }
+.desk-screen iframe.is-vertical { width: auto; height: 100%; aspect-ratio: 9 / 16; max-width: 100%; }
+.desk-screen .desk-btn { position: absolute; top: 18px; right: 18px; }
+
+.desk-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-content: center;
+    gap: 18px;
+    justify-items: center;
+    text-align: center;
+    padding: 24px;
+    background: var(--ink);
+    color: var(--ash);
+}
+
+@media (max-width: 720px) {
+    .desk-top { padding: 14px 16px; }
+    .desk-top .desk-btn { padding: 0.7em 0.9em; font-size: 0.68rem; }
+    .desk-lang { padding: 6px 4px; font-size: 0.68rem; }
+    .desk-brand--small { font-size: 0.8rem; letter-spacing: 0.2em; }
+    .desk-back { top: 64px; left: 16px; }
+    .desk-panel {
+        top: auto;
+        left: 0;
+        width: 100%;
+        max-height: 72vh;
+        padding: 28px 20px 28px;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        border-radius: 18px 18px 0 0;
+        background: rgba(11, 11, 12, 0.96);
+        animation-name: panel-up;
+    }
+    @keyframes panel-up { from { transform: translateY(40px); opacity: 0; } }
+    .desk-panel__close { top: 16px; right: 16px; }
+    .desk-panel h2 { font-size: 1.7rem; padding-right: 60px; }
+    .desk-portrait { aspect-ratio: 16 / 10; }
+    .desk-player { left: 16px; right: 16px; bottom: 84px; max-width: none; }
+    .desk-dock { bottom: 16px; }
+    .desk-hint { bottom: 168px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .desk-panel { animation: none; }
+}
