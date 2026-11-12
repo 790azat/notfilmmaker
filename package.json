@@ -18,6 +18,7 @@
     },
     "dependencies": {
         "@vercel/blob": "^2.8.0",
-        "@zip.js/zip.js": "^2.18.2"
+        "@zip.js/zip.js": "^2.18.2",
+        "three": "^0.170.0"
     }
 }

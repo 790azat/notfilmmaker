@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UploadController;
+use App\Http\Controllers\AlternativeController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CronController;
 use App\Http\Controllers\LocaleController;
@@ -15,6 +16,8 @@ Route::get('/works', Livewire\Works\Index::class)->name('works.index');
 Route::get('/works/{work}', Livewire\Works\Show::class)->name('works.show');
 Route::get('/about', Livewire\About::class)->name('about');
 Route::get('/contact', Livewire\Contact::class)->name('contact');
+Route::get('/alternative', [AlternativeController::class, 'show'])->name('alternative');
+Route::post('/alternative/book', [AlternativeController::class, 'book'])->name('alternative.book');
 Route::get('/lang/{locale}', LocaleController::class)->name('locale');
 Route::get('/sitemap.xml', SitemapController::class);
 Route::get('/cron/youtube', [CronController::class, 'youtube']);
